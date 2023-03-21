@@ -12,11 +12,15 @@ Poniżej jest lista z założeniami jakie każdy moduł powinien spełniać.
     - ratio_labeled: stosunek oznaczonych danych do wszystkich danych
     - ratio_positive: stosunek danych z pozytywnej klasy (rak) do wszystkich danych
     - (do dyskusji) dobrze jeśli oba zbiory, labeled i unlabeled, będą miały taki sam stosunek klas pozytywnych
+    - zachowuje ostatni wygenerowany zbiór danych
+
+- `get_label(id)`
+    - zwraca właściwą labelkę dla danej instancji
+    - indeksowanie po id z aktualnego zbioru danych
 
 **Moduł modelu**
 
-**Moduł zapytań**
-
-**Moduł wyroczni**
-
 **Moduł oceny**
+
+Możliwość zapisu wyników
+Możliwość agregacji kilku zapisanych wyników do jednego (kilka osobnych przejść przez pipeline, równoległe działanie i późniejsza integracja)
