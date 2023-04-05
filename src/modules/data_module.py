@@ -5,7 +5,7 @@ from torch.utils.data import Subset
 import numpy as np
 
 
-class Dataset():
+class ActiveDataset():
     
     # TODO Add sample weights as property
     # weights only apply to labeled samples
