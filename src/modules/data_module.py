@@ -5,8 +5,15 @@ from torch.utils.data import Subset
 import numpy as np
 
 
-class Dataset():
+class ActiveDataset():
     
+    # TODO Add sample weights as property
+    # weights only apply to labeled samples
+    # additionally there should be a function "update_weights"
+    # that updates the weights based on the number of feedback loop iterations
+    # 
+    # The exact implementation is to be discussed
+
     __slots__ = ['train_dataset', 'test_dataset', 'labeled_idx', 'unlabeled_idx']
 
     @property
