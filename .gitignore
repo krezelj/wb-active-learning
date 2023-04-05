@@ -1,1 +1,7 @@
+# files
 *.ipynb
+*.pyc
+
+
+# directories
+data
