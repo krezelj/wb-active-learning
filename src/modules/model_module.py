@@ -35,8 +35,6 @@ class ActiveLearner():
     
 
     def fit(self, training_loader, validation_loader, optimizer, loss_function, epochs=1):
-        # TODO Add X_validation, y_validation
-
         for epoch in range(epochs):
 
             # train model
