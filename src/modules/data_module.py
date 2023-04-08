@@ -25,7 +25,7 @@ class ActiveDataset():
         return Subset(self.train_dataset, self.unlabeled_idx)
     
 
-    def __init__(self, source, size, ratio_labeled=0.05, ratio_classes=None, balanced_split=True) -> None:
+    def __init__(self, source, subset_size, ratio_labeled=0.05, ratio_classes=None, balanced_split=True) -> None:
         """
         Initialises the dataset object
 
@@ -49,6 +49,10 @@ class ActiveDataset():
         self.unlabeled_idx = np.setdiff1d(all_indices, self.labeled_idx)
 
         # TODO Implement class balancing
+        # Suggested way to do this:
+        # for each class calculate number of samples of that class (class_i_proportion * subset_size)
+        # get indices of all classes in separate arrays (one array per class containing indices for all samples of that class)
+        # np.random.choice(class_i_indices, size=class_i_size, replace=False)
         
     def __get_from_source(self, source):
         if source == "mnist":
