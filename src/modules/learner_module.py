@@ -16,6 +16,9 @@ class ActiveLearner():
     
 
     def fit(self, training_loader, validation_loader, optimizer, loss_function, epochs=1):
+        avg_loss_history = []
+        avg_vloss_history = []
+
         for epoch in range(epochs):
 
             # train model
@@ -26,6 +29,12 @@ class ActiveLearner():
             # validate model
             avg_vloss = self.validate(validation_loader, loss_function)
             print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
+
+            # append to history
+            avg_loss_history.append(avg_loss)
+            avg_vloss_history.append(avg_vloss)
+
+        return avg_loss_history, avg_vloss_history
 
 
     def validate(self, validation_loader, loss_function):
@@ -39,7 +48,7 @@ class ActiveLearner():
 
                 voutputs = self.model(vinputs)
                 vloss = loss_function(voutputs, vlabels)
-                running_vloss += vloss
+                running_vloss += vloss.item()
 
         return running_vloss / (i + 1)
 
