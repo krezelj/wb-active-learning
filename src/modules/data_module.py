@@ -43,10 +43,16 @@ class ActiveDataset():
         size = len(self.train_dataset)
 
         # randomly choose labeled indices
-        n_labeled = int(size * ratio_labeled)
+        # we want the indices inside `labeled_idx` and `unlabled_idx` to be
+        # global indices so that no matter what the subset is chosen
+        # an index 'i' will always refer to the exact same sample
+        # this is necessary for easier evaluation later on
         all_indices = np.arange(size)
-        self.labeled_idx = np.random.choice(np.arange(size), size=n_labeled, replace=False)
-        self.unlabeled_idx = np.setdiff1d(all_indices, self.labeled_idx)
+        subset_indices = np.random.choice(all_indices, size=subset_size, replace=False)
+
+        n_labeled = int(subset_size * ratio_labeled)
+        self.labeled_idx = np.random.choice(subset_indices, size=n_labeled, replace=False)
+        self.unlabeled_idx = np.setdiff1d(subset_indices, self.labeled_idx)
 
         # TODO Implement class balancing
         # Suggested way to do this:
@@ -56,10 +62,10 @@ class ActiveDataset():
         
     def __get_from_source(self, source):
         if source == "mnist":
-            self.train_dataset = MNIST(root="./data", download=False, train=True, 
+            self.train_dataset = MNIST(root="../data", download=False, train=True, 
                                        transform=ToTensor(),
                                        target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self.test_dataset = MNIST(root="./data", download=False, train=False, 
+            self.test_dataset = MNIST(root="../data", download=False, train=False, 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         elif source == "pcam":

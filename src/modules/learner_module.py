@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 
 class ActiveLearner():
@@ -23,24 +24,24 @@ class ActiveLearner():
             self.model.train(False)
 
             # validate model
-            avg_vloss = self.__validate(validation_loader, loss_function)
+            avg_vloss = self.validate(validation_loader, loss_function)
             print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
 
-    def __validate(self, validation_loader, loss_function):
+    def validate(self, validation_loader, loss_function):
         running_vloss = 0.0
 
-        for i, vdata in enumerate(validation_loader):
-            vinputs, vlabels = vdata
-            vinputs = vinputs.to(self.device)
-            vlabels = vlabels.to(self.device)
+        with torch.no_grad():
+            for i, vdata in enumerate(validation_loader):
+                vinputs, vlabels = vdata
+                vinputs = vinputs.to(self.device)
+                vlabels = vlabels.to(self.device)
 
-            voutputs = self.model(vinputs)
-            vloss = loss_function(voutputs, vlabels)
-            running_vloss += vloss
+                voutputs = self.model(vinputs)
+                vloss = loss_function(voutputs, vlabels)
+                running_vloss += vloss
 
         return running_vloss / (i + 1)
-
 
     def __train_one_epoch(self, training_loader, loss_function, optimizer):
         running_loss = 0.0
@@ -62,6 +63,26 @@ class ActiveLearner():
 
         return running_loss / (i + 1)
 
-    def generate_query(self, criterion='uncertainty'):
-        raise NotImplementedError
+    def predict(self, data_loader):        
+        all_outputs = []
+        with torch.no_grad():
+            for data in data_loader:
+                inputs, _ = data
+                inputs = inputs.to(self.device)
+
+                outputs = self.model(inputs)
+                all_outputs.append(outputs)
+
+        return torch.cat(all_outputs)
+
+
+    def generate_query(self, unlabeled_loader, criterion='uncertainty'):
+        # For now only uncertainty is available and uses *entropy* as measure of uncertainty
+        y_pred = self.predict(unlabeled_loader)
+        y_pred = nn.functional.softmax(y_pred, dim=1)
+        uncertainties = -torch.sum(torch.mul(y_pred, torch.log(y_pred)), dim=1) # entropy
+
+        # most uncertain sample, convert to cpu for easy indexing as DataSet works on a cpu
+        query = torch.argmax(uncertainties).to('cpu') 
+        return query
     
