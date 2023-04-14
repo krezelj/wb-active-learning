@@ -61,11 +61,13 @@ class ActiveDataset():
         # np.random.choice(class_i_indices, size=class_i_size, replace=False)
         
     def __get_from_source(self, source):
+        # TODO fix pathing, instead of '../../data' make it a statis variable (or something)
+
         if source == "mnist":
-            self.train_dataset = MNIST(root="../data", download=False, train=True, 
+            self.train_dataset = MNIST(root="../../data", download=False, train=True, 
                                        transform=ToTensor(),
                                        target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self.test_dataset = MNIST(root="../data", download=False, train=False, 
+            self.test_dataset = MNIST(root="../../data", download=False, train=False, 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         elif source == "pcam":
