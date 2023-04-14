@@ -66,7 +66,7 @@ class ActiveLearner():
     def predict(self, data_loader):        
         all_outputs = []
         with torch.no_grad():
-            for data in enumerate(data_loader):
+            for data in data_loader:
                 inputs, _ = data
                 inputs = inputs.to(self.device)
 
