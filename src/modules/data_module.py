@@ -50,7 +50,7 @@ class ActiveDataset():
         all_indices = np.arange(size)
         subset_indices = np.random.choice(all_indices, size=subset_size, replace=False)
 
-        n_labeled = int(size * ratio_labeled)
+        n_labeled = int(subset_size * ratio_labeled)
         self.labeled_idx = np.random.choice(subset_indices, size=n_labeled, replace=False)
         self.unlabeled_idx = np.setdiff1d(subset_indices, self.labeled_idx)
 
