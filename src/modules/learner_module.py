@@ -63,28 +63,22 @@ class ActiveLearner():
 
         return running_loss / (i + 1)
 
-    def predict(self):
-        # TODO method that takes in dataset/dataloader (?)
-        # and outputs predictions for all observations
+    def predict(self, data_loader):        
+        all_outputs = []
+        with torch.no_grad():
+            for data in enumerate(data_loader):
+                inputs, _ = data
+                inputs = inputs.to(self.device)
 
-        # TODO after implementing use it in generate_query method 
-        # (=> change generate_query to accept dataset/dataloder accordingly)
-        
-        raise NotImplementedError
+                outputs = self.model(inputs)
+                all_outputs.append(outputs)
+
+        return torch.cat(all_outputs)
 
 
     def generate_query(self, unlabeled_loader, criterion='uncertainty'):
         # For now only uncertainty is available and uses *entropy* as measure of uncertainty
-        all_outputs = []
-        with torch.no_grad():
-            for i, udata in enumerate(unlabeled_loader):
-                uinputs, _ = udata
-                uinputs = uinputs.to(self.device)
-
-                uoutputs = self.model(uinputs)
-                all_outputs.append(uoutputs)
-
-        y_pred = torch.cat(all_outputs)
+        y_pred = self.predict(unlabeled_loader)
         y_pred = nn.functional.softmax(y_pred, dim=1)
         uncertainties = -torch.sum(torch.mul(y_pred, torch.log(y_pred)), dim=1) # entropy
 
