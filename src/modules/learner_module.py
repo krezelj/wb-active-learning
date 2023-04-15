@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import numpy as np
 
 
 class ActiveLearner():
@@ -15,9 +16,16 @@ class ActiveLearner():
         return self.model(inputs)
     
 
-    def fit(self, training_loader, validation_loader, optimizer, loss_function, epochs=1):
+    def fit(self, training_loader, validation_loader, optimizer, loss_function, epochs=1, early_stopping=False):
         avg_loss_history = []
         avg_vloss_history = []
+
+        min_avg_vloss = np.inf
+
+        # TODO parametrise this
+        max_epochs_since_improvement = 10
+        epochs_since_last_improvement = 0
+        threshold = 0.001
 
         for epoch in range(epochs):
 
@@ -28,11 +36,22 @@ class ActiveLearner():
 
             # validate model
             avg_vloss = self.validate(validation_loader, loss_function)
-            print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
             # append to history
             avg_loss_history.append(avg_loss)
             avg_vloss_history.append(avg_vloss)
+            
+            # print info
+            print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
+
+            # early stopping
+            if avg_vloss < min_avg_vloss - threshold:
+                min_avg_vloss = avg_vloss
+            else:
+                epochs_since_last_improvement += 1
+            if epochs_since_last_improvement == max_epochs_since_improvement:
+                print("Stopping Early...")
+                return avg_loss_history, avg_vloss_history
 
         return avg_loss_history, avg_vloss_history
 
