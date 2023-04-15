@@ -51,6 +51,7 @@ class ActiveLearner():
 
             if early_stopping:
                 if avg_vloss < min_avg_vloss - threshold:
+                    epochs_since_last_improvement = 0
                     min_avg_vloss = avg_vloss
                 else:
                     epochs_since_last_improvement += 1
