@@ -5,6 +5,30 @@ from torch.utils.data import Subset
 import numpy as np
 
 
+# Used to create custom `Subset` classes that return index along with data and target
+# this is necessary because if we want to apply weight during mini batch training
+# we need to know which weights to choose 
+def indexed_subset(cls):
+    def __getitem__(self, index):
+        data, target = cls.__getitem__(self, index)
+        return data, target, index
+
+    return type(cls.__name__, (cls,), {
+        '__getitem__': __getitem__,
+    })
+
+
+class IndexedSubset(Subset):
+
+    def __init__(self, dataset, indices) -> None:
+        super().__init__(dataset, indices)
+
+    def __getitem__(self, idx):
+        data, target = super().__getitem__(idx)
+        return data, target, idx
+
+
+
 class ActiveDataset():
     
     # TODO Add sample weights as property
@@ -18,12 +42,12 @@ class ActiveDataset():
 
     @property
     def labeled_set(self):
-        return Subset(self.train_dataset, self.labeled_idx)
+        return IndexedSubset(self.train_dataset, self.labeled_idx)
     
     @property
     def unlabeled_set(self):
-        return Subset(self.train_dataset, self.unlabeled_idx)
-    
+        return IndexedSubset(self.train_dataset, self.unlabeled_idx)
+        
 
     def __init__(self, source, subset_size, ratio_labeled=0.05, ratio_classes=None, balanced_split=True) -> None:
         """
