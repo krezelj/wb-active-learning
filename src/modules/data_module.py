@@ -101,7 +101,7 @@ class ActiveDataset():
         else:
             raise ValueError("Invalid source name")
 
-    def get_label_by_idx(self, idx, move_sample=True):
+    def get_label_by_idx(self, indices, move_sample=True):
         """
         Gets the label of an unlabeled sample.
 
@@ -111,11 +111,12 @@ class ActiveDataset():
             `move_sample` (bool): decided whether to move the sample to the labeled
         """
 
-        global_idx = self.unlabeled_idx[idx]
+        global_indices = self.unlabeled_idx[indices]
         if move_sample:
-            self.labeled_idx = np.concatenate([self.labeled_idx, [global_idx]])
-            self.unlabeled_idx = np.concatenate([self.unlabeled_idx[:idx], self.unlabeled_idx[idx+1:]])
-        return self.train_dataset[global_idx][1]
+            self.labeled_idx = np.concatenate([self.labeled_idx, global_indices])
+            self.unlabeled_idx = np.setdiff1d(self.unlabeled_idx, self.labeled_idx)
+        return [self.train_dataset.targets[global_idx] for global_idx in global_indices]
+        
     
 
 def download_data():
