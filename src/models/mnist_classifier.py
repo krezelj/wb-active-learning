@@ -8,8 +8,10 @@ class MNISTClassifier(nn.Module):
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(28*28, 64),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Linear(64, 64),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Linear(64, 10),
         )
 
