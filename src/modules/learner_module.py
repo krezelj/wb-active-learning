@@ -28,7 +28,7 @@ class ActiveLearner():
         min_avg_vloss = np.inf
 
         # TODO parametrise this
-        max_epochs_since_improvement = 10
+        max_epochs_since_improvement = 5
         epochs_since_last_improvement = 0
         threshold = 0.001
 
@@ -50,10 +50,10 @@ class ActiveLearner():
             print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
             if early_stopping:
-                if avg_vloss < min_avg_vloss - threshold:
+                if avg_vloss < min_avg_vloss:
                     epochs_since_last_improvement = 0
                     min_avg_vloss = avg_vloss
-                else:
+                elif avg_vloss > min_avg_vloss + threshold:
                     epochs_since_last_improvement += 1
                 if epochs_since_last_improvement == max_epochs_since_improvement:
                     print("Stopping Early...")
@@ -93,7 +93,7 @@ class ActiveLearner():
             else:
                 per_sample_loss = loss_function(outputs, labels, reduction='none')
                 batch_sample_weights = sample_weights[idx]
-                weighted_loss = per_sample_loss * batch_sample_weights
+                weighted_loss = per_sample_loss * batch_sample_weights.to(self.device)
                 loss = torch.mean(weighted_loss)
 
             loss.backward()
@@ -125,5 +125,5 @@ class ActiveLearner():
 
         # most uncertain sample, convert to cpu for easy indexing as DataSet works on a cpu
         query = torch.argmax(uncertainties).to('cpu') 
-        return query
+        return query, uncertainties[query], torch.min(uncertainties)
     
