@@ -47,6 +47,10 @@ class ActiveDataset():
             self.cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
         return self.cached_labeled_set
     
+    @property 
+    def labeled_targets(self):
+        return self._full_train_set.targets[self.labeled_idx]
+    
     @property
     def unlabeled_set(self):
         if self.cached_unlabeled_set is None:
@@ -54,10 +58,18 @@ class ActiveDataset():
         return self.cached_labeled_set
     
     @property
+    def unlabeled_targets(self):
+        return self._full_train_set.targets[self.unlabeled_idx]
+    
+    @property
     def test_set(self):
         if self.cached_test_set is None:
             self.cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
         return self.cached_test_set
+    
+    @property
+    def test_targets(self):
+        return self._full_test_set.targets[self.test_idx]
         
 
     def __init__(self, source, train_subset_size, test_subset_size, 
