@@ -28,7 +28,7 @@ class ActiveLearner():
         min_avg_vloss = np.inf
 
         # TODO parametrise this
-        max_epochs_since_improvement = 5
+        max_epochs_since_improvement = 10
         epochs_since_last_improvement = 0
         threshold = 0.001
 
@@ -52,13 +52,18 @@ class ActiveLearner():
             if early_stopping:
                 if avg_vloss < min_avg_vloss:
                     epochs_since_last_improvement = 0
+                    torch.save(self.model.state_dict(), 'temp_model_states/best_model.pth')
                     min_avg_vloss = avg_vloss
                 elif avg_vloss > min_avg_vloss + threshold:
                     epochs_since_last_improvement += 1
                 if epochs_since_last_improvement == max_epochs_since_improvement:
                     print("Stopping Early...")
+                    self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
                     return avg_loss_history, avg_vloss_history
 
+        # TODO Add a flag whether the best model should be retrived or not
+        # (maybe the user wants the laters model to be present)
+        self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
         return avg_loss_history, avg_vloss_history
 
 
@@ -149,10 +154,10 @@ class ActiveLearner():
 
     @classmethod
     def __calculate_samples_margin(cls, y_predicted):
-        top2 = torch.topk(y_predicted, k=2, dim=1)
+        top2 = torch.topk(y_predicted, k=2, dim=1).values
         return torch.abs(torch.diff(top2, dim=1)).reshape((-1,))
 
     @classmethod
     def __calculate_samples_confidence(cls, y_predicted):
-        return 1 - torch.max(y_predicted, dim=1)
+        return 1 - torch.max(y_predicted, dim=1).values
     
