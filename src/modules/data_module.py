@@ -133,6 +133,11 @@ class ActiveDataset():
         """
 
         global_indices = self.unlabeled_idx[indices]
+
+        # ensure indices dimension is not 0 (it's 0 when it's just a number i.e. one index not a list)
+        if len(global_indices.shape) == 0:
+                    global_indices = global_indices.reshape(-1) 
+
         if move_sample:
             self.cached_labeled_set = None
             self.cached_unlabeled_set = None
