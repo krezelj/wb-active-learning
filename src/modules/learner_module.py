@@ -121,11 +121,38 @@ class ActiveLearner():
         """
         criterion: 'entropy' | 'margin' | 'confidence'
         """
-        y_pred = self.predict(unlabeled_loader)
-        y_pred = nn.functional.softmax(y_pred, dim=1)
-        uncertainties = -torch.sum(torch.mul(y_pred, torch.log(y_pred)), dim=1) # entropy
+        y_predicted = self.predict(unlabeled_loader)
 
-        # most uncertain sample, convert to cpu for easy indexing as DataSet works on a cpu
-        query = torch.topk(uncertainties.flatten(), batch_size).indices#.to('cpu')
-        return query, uncertainties[query]
+        # TODO right now this is tied to MNISTClassifier model that outputs logits
+        # ideally it should be output-aware and not apply softmax to every output
+        y_predicted = nn.functional.softmax(y_predicted, dim=1) 
+
+        if criterion == 'entropy':
+            uncertainties = ActiveLearner.__calculate_samples_entropy(y_predicted)
+        elif criterion == 'margin':
+            uncertainties = ActiveLearner.__calculate_samples_margin(y_predicted)
+        elif criterion == 'confidence':
+            uncertainties = ActiveLearner.__calculate_samples_confidence(y_predicted)
+        else:
+            raise ValueError("Invalid criterion. Must be one of `entropy`, `margin`, `confidence`")
+
+        # myopical batch-mode most queries
+        queries = torch.topk(uncertainties.flatten(), batch_size).indices
+        return queries, uncertainties[queries]
+    
+
+    # TODO Move this classes to utilities (?)
+    # I'm not sure if they belong here
+    @classmethod
+    def __calculate_samples_entropy(cls, y_predicted):
+        return -torch.sum(torch.mul(y_predicted, torch.log(y_predicted)), dim=1)
+
+    @classmethod
+    def __calculate_samples_margin(cls, y_predicted):
+        top2 = torch.topk(y_predicted, k=2, dim=1)
+        return torch.abs(torch.diff(top2, dim=1)).reshape((-1,))
+
+    @classmethod
+    def __calculate_samples_confidence(cls, y_predicted):
+        return 1 - torch.max(y_predicted, dim=1)
     
