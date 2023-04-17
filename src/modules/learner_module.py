@@ -117,8 +117,10 @@ class ActiveLearner():
         return torch.cat(all_outputs)
 
 
-    def generate_query(self, unlabeled_loader, criterion='uncertainty', batch_size=1):
-        # For now only uncertainty is available and uses *entropy* as measure of uncertainty
+    def generate_query(self, unlabeled_loader, criterion='entropy', batch_size=1):
+        """
+        criterion: 'entropy' | 'margin' | 'confidence'
+        """
         y_pred = self.predict(unlabeled_loader)
         y_pred = nn.functional.softmax(y_pred, dim=1)
         uncertainties = -torch.sum(torch.mul(y_pred, torch.log(y_pred)), dim=1) # entropy
