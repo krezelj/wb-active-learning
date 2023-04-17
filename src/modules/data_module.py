@@ -38,19 +38,26 @@ class ActiveDataset():
     # 
     # The exact implementation is to be discussed
 
-    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'test_idx']
+    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'test_idx',
+                 'cached_test_set', 'cached_labeled_set', 'cached_unlabeled_set']
 
     @property
     def labeled_set(self):
-        return IndexedSubset(self._full_train_set, self.labeled_idx)
+        if self.cached_labeled_set is None:
+            self.cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
+        return self.cached_labeled_set
     
     @property
     def unlabeled_set(self):
-        return IndexedSubset(self._full_train_set, self.unlabeled_idx)
+        if self.cached_unlabeled_set is None:
+            self.cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
+        return self.cached_labeled_set
     
     @property
     def test_set(self):
-        return IndexedSubset(self._full_test_set, self.test_idx)
+        if self.cached_test_set is None:
+            self.cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
+        return self.cached_test_set
         
 
     def __init__(self, source, train_subset_size, test_subset_size, 
@@ -69,6 +76,10 @@ class ActiveDataset():
         """
 
         self.__get_from_source(source)
+        self.cached_labeled_set = None
+        self.cached_unlabeled_set = None
+        self.cached_test_set = None
+
         train_size = len(self._full_train_set)
         test_size = len(self._full_test_set)
 
@@ -123,6 +134,8 @@ class ActiveDataset():
 
         global_indices = self.unlabeled_idx[indices]
         if move_sample:
+            self.cached_labeled_set = None
+            self.cached_unlabeled_set = None
             self.labeled_idx = np.concatenate([self.labeled_idx, global_indices])
             self.unlabeled_idx = np.setdiff1d(self.unlabeled_idx, self.labeled_idx)
         return [self._full_train_set.targets[global_idx] for global_idx in global_indices]
