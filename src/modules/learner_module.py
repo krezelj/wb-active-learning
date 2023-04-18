@@ -155,7 +155,9 @@ class ActiveLearner():
     @classmethod
     def __calculate_samples_margin(cls, y_predicted):
         top2 = torch.topk(y_predicted, k=2, dim=1).values
-        return torch.abs(torch.diff(top2, dim=1)).reshape((-1,))
+
+        # return as (negative)margin so that argmin turns into argmax
+        return -torch.abs(torch.diff(top2, dim=1)).reshape((-1,))
 
     @classmethod
     def __calculate_samples_confidence(cls, y_predicted):
