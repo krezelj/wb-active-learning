@@ -25,14 +25,14 @@ class ActiveDataset():
     # 
     # The exact implementation is to be discussed
 
-    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'test_idx',
-                 'cached_test_set', 'cached_labeled_set', 'cached_unlabeled_set']
+    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
+                 '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']
 
     @property
     def labeled_set(self):
-        if self.cached_labeled_set is None:
-            self.cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
-        return self.cached_labeled_set
+        if self._cached_labeled_set is None:
+            self._cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
+        return self._cached_labeled_set
     
     @property 
     def labeled_targets(self):
@@ -40,19 +40,29 @@ class ActiveDataset():
     
     @property
     def unlabeled_set(self):
-        if self.cached_unlabeled_set is None:
-            self.cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
-        return self.cached_unlabeled_set
+        if self._cached_unlabeled_set is None:
+            self._cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
+        return self._cached_unlabeled_set
     
     @property
     def unlabeled_targets(self):
         return self._full_train_set.targets[self.unlabeled_idx]
+
+    @property
+    def last_labeled_set(self):
+        if self._cached_last_labeled_set is None:
+            self._cached_last_labeled_set = IndexedSubset(self._full_train_set, self.last_labeled_idx)
+        return self._cached_last_labeled_set
+    
+    @property
+    def last_labeled_targets(self):
+        return self._full_train_set.targets[self.last_labeled_idx]
     
     @property
     def test_set(self):
-        if self.cached_test_set is None:
-            self.cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
-        return self.cached_test_set
+        if self._cached_test_set is None:
+            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
+        return self._cached_test_set
     
     @property
     def test_targets(self):
@@ -75,9 +85,10 @@ class ActiveDataset():
         """
 
         self.__get_from_source(source)
-        self.cached_labeled_set = None
-        self.cached_unlabeled_set = None
-        self.cached_test_set = None
+        self._cached_labeled_set = None
+        self._cached_unlabeled_set = None
+        self._cached_test_set = None
+        self._cached_last_labeled_set = None
 
         train_size = len(self._full_train_set)
         test_size = len(self._full_test_set)
@@ -93,6 +104,7 @@ class ActiveDataset():
         n_labeled = int(train_subset_size * ratio_labeled)
         self.labeled_idx = np.random.choice(train_subset_indices, size=n_labeled, replace=False)
         self.unlabeled_idx = np.setdiff1d(train_subset_indices, self.labeled_idx)
+        self.last_labeled_idx = np.empty(0)
 
         # get random test set
         test_all_idx = np.arange(test_size)
@@ -134,23 +146,24 @@ class ActiveDataset():
         Gets the label of an unlabeled sample.
 
         Arguments:
-            `idx` (int): index of the sample in the **unlabeled** set\n
+            `idx` (int): index of the sample in the **unlabeled** subset\n
         Parameters:
             `move_sample` (bool): decided whether to move the sample to the labeled
         """
 
-        global_indices = self.unlabeled_idx[indices]
+        self.last_labeled_idx = self.unlabeled_idx[indices]
 
         # ensure indices dimension is not 0 (it's 0 when it's just a number i.e. one index not a list)
-        if len(global_indices.shape) == 0:
-            global_indices = global_indices.reshape(-1) 
+        if len(self.last_labeled_idx.shape) == 0:
+            self.last_labeled_idx = self.last_labeled_idx.reshape(-1) 
 
         if move_sample:
-            self.cached_labeled_set = None
-            self.cached_unlabeled_set = None
-            self.labeled_idx = np.concatenate([self.labeled_idx, global_indices])
+            self._cached_labeled_set = None
+            self._cached_unlabeled_set = None
+            self._cached_last_labeled_set = None
+            self.labeled_idx = np.concatenate([self.labeled_idx, self.last_labeled_idx])
             self.unlabeled_idx = np.setdiff1d(self.unlabeled_idx, self.labeled_idx)
-        return [self._full_train_set.targets[global_idx] for global_idx in global_indices]
+        return [self._full_train_set.targets[global_idx] for global_idx in self.last_labeled_idx]
         
     
 
