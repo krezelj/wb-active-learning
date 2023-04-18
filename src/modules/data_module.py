@@ -55,7 +55,7 @@ class ActiveDataset():
     def unlabeled_set(self):
         if self.cached_unlabeled_set is None:
             self.cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
-        return self.cached_labeled_set
+        return self.cached_unlabeled_set
     
     @property
     def unlabeled_targets(self):
@@ -148,7 +148,7 @@ class ActiveDataset():
 
         # ensure indices dimension is not 0 (it's 0 when it's just a number i.e. one index not a list)
         if len(global_indices.shape) == 0:
-                    global_indices = global_indices.reshape(-1) 
+            global_indices = global_indices.reshape(-1) 
 
         if move_sample:
             self.cached_labeled_set = None
