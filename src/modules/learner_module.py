@@ -9,11 +9,15 @@ class ActiveLearner():
 
     def __init__(self, model, device):
         self.model = model
+        self.model.eval()
         self.device = device
 
 
     def __call__(self, inputs):
-        return self.model(inputs)
+        self.model.eval()
+        with torch.no_grad():
+            outputs = self.model(inputs)
+        return outputs
     
 
     def fit(self, training_loader, validation_loader, 
@@ -76,7 +80,7 @@ class ActiveLearner():
                 vinputs = vinputs.to(self.device)
                 vlabels = vlabels.to(self.device)
 
-                voutputs = self.model(vinputs)
+                voutputs = self(vinputs)
                 vloss = loss_function(voutputs, vlabels)
                 running_vloss += vloss.item()
 
@@ -116,7 +120,7 @@ class ActiveLearner():
                 inputs, *_ = data
                 inputs = inputs.to(self.device)
 
-                outputs = self.model(inputs)
+                outputs = self(inputs)
                 all_outputs.append(outputs)
 
         return torch.cat(all_outputs)
