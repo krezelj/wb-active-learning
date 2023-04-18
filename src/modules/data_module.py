@@ -1,5 +1,5 @@
 import torch
-from torchvision.datasets import MNIST, PCAM
+from torchvision.datasets import MNIST, PCAM, FashionMNIST
 from torchvision.transforms import ToTensor, Lambda
 from torch.utils.data import Subset
 import numpy as np
@@ -127,6 +127,14 @@ class ActiveDataset():
             self._full_test_set = MNIST(root="../../data", download=False, train=False, 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+        elif source == "fashion":
+            self._full_train_set = FashionMNIST(root="../../data", download=False, train=True, 
+                                       transform=ToTensor(),
+                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = FashionMNIST(root="../../data", download=False, train=False, 
+                                      transform=ToTensor(),
+                                      target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+        
         elif source == "pcam":
             raise NotImplementedError
             # self.train_dataset = PCAM(root="./data", download=False, train=True, transform=ToTensor())
@@ -163,8 +171,9 @@ def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:
-        MNIST(root = './data/', download = True)
-        PCAM(root='./data', download=True)
+        MNIST(root = '../../data/', download = True)
+        PCAM(root='../../data', download=True)
+        FashionMNIST(root='../../data', download=True)
     else:
         print("Aborted.")
 
