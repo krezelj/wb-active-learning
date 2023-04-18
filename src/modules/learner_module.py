@@ -53,13 +53,13 @@ class ActiveLearner():
             # print info
             print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
+            if avg_vloss < min_avg_vloss:
+                epochs_since_last_improvement = 0
+                torch.save(self.model.state_dict(), 'temp_model_states/best_model.pth')
+                min_avg_vloss = avg_vloss
+            elif avg_vloss > min_avg_vloss + threshold:
+                epochs_since_last_improvement += 1
             if early_stopping:
-                if avg_vloss < min_avg_vloss:
-                    epochs_since_last_improvement = 0
-                    torch.save(self.model.state_dict(), 'temp_model_states/best_model.pth')
-                    min_avg_vloss = avg_vloss
-                elif avg_vloss > min_avg_vloss + threshold:
-                    epochs_since_last_improvement += 1
                 if epochs_since_last_improvement == max_epochs_since_improvement:
                     print("Stopping Early...")
                     self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
@@ -128,7 +128,7 @@ class ActiveLearner():
 
     def generate_query(self, unlabeled_loader, criterion='entropy', batch_size=1):
         """
-        criterion: 'entropy' | 'margin' | 'confidence'
+        criterion: 'entropy' | 'margin' | 'confidence' | 'random' |
         """
         y_predicted = self.predict(unlabeled_loader)
 
@@ -142,8 +142,11 @@ class ActiveLearner():
             uncertainties = ActiveLearner.__calculate_samples_margin(y_predicted)
         elif criterion == 'confidence':
             uncertainties = ActiveLearner.__calculate_samples_confidence(y_predicted)
+        elif criterion == 'random':
+            return np.random.choice(np.arange(len(unlabeled_loader.dataset)), size=batch_size, replace=False), None
         else:
             raise ValueError("Invalid criterion. Must be one of `entropy`, `margin`, `confidence`")
+        
 
         # myopical batch-mode most queries
         queries = torch.topk(uncertainties.flatten(), batch_size).indices
