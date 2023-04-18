@@ -1,6 +1,8 @@
 # files
 notebooks/personal/*.ipynb
 *.pyc
+*.pt
+*.pth
 
 # directories
 data

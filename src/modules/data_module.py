@@ -1,8 +1,19 @@
 import torch
-from torchvision.datasets import MNIST, PCAM
+from torchvision.datasets import MNIST, PCAM, FashionMNIST
 from torchvision.transforms import ToTensor, Lambda
 from torch.utils.data import Subset
 import numpy as np
+
+
+class IndexedSubset(Subset):
+
+    def __init__(self, dataset, indices) -> None:
+        super().__init__(dataset, indices)
+
+    def __getitem__(self, idx):
+        data, target = super().__getitem__(idx)
+        return data, target, idx
+
 
 
 class ActiveDataset():
@@ -14,18 +25,52 @@ class ActiveDataset():
     # 
     # The exact implementation is to be discussed
 
-    __slots__ = ['train_dataset', 'test_dataset', 'labeled_idx', 'unlabeled_idx']
+    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
+                 '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']
 
     @property
     def labeled_set(self):
-        return Subset(self.train_dataset, self.labeled_idx)
+        if self._cached_labeled_set is None:
+            self._cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
+        return self._cached_labeled_set
+    
+    @property 
+    def labeled_targets(self):
+        return self._full_train_set.targets[self.labeled_idx]
     
     @property
     def unlabeled_set(self):
-        return Subset(self.train_dataset, self.unlabeled_idx)
+        if self._cached_unlabeled_set is None:
+            self._cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
+        return self._cached_unlabeled_set
     
+    @property
+    def unlabeled_targets(self):
+        return self._full_train_set.targets[self.unlabeled_idx]
 
-    def __init__(self, source, subset_size, ratio_labeled=0.05, ratio_classes=None, balanced_split=True) -> None:
+    @property
+    def last_labeled_set(self):
+        if self._cached_last_labeled_set is None:
+            self._cached_last_labeled_set = IndexedSubset(self._full_train_set, self.last_labeled_idx)
+        return self._cached_last_labeled_set
+    
+    @property
+    def last_labeled_targets(self):
+        return self._full_train_set.targets[self.last_labeled_idx]
+    
+    @property
+    def test_set(self):
+        if self._cached_test_set is None:
+            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
+        return self._cached_test_set
+    
+    @property
+    def test_targets(self):
+        return self._full_test_set.targets[self.test_idx]
+        
+
+    def __init__(self, source, train_subset_size, test_subset_size, 
+                 ratio_labeled=0.05, ratio_classes=None, balanced_split=True) -> None:
         """
         Initialises the dataset object
 
@@ -40,19 +85,30 @@ class ActiveDataset():
         """
 
         self.__get_from_source(source)
-        size = len(self.train_dataset)
+        self._cached_labeled_set = None
+        self._cached_unlabeled_set = None
+        self._cached_test_set = None
+        self._cached_last_labeled_set = None
+
+        train_size = len(self._full_train_set)
+        test_size = len(self._full_test_set)
 
         # randomly choose labeled indices
         # we want the indices inside `labeled_idx` and `unlabled_idx` to be
         # global indices so that no matter what the subset is chosen
         # an index 'i' will always refer to the exact same sample
         # this is necessary for easier evaluation later on
-        all_indices = np.arange(size)
-        subset_indices = np.random.choice(all_indices, size=subset_size, replace=False)
+        train_all_idx = np.arange(train_size)
+        train_subset_indices = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
 
-        n_labeled = int(subset_size * ratio_labeled)
-        self.labeled_idx = np.random.choice(subset_indices, size=n_labeled, replace=False)
-        self.unlabeled_idx = np.setdiff1d(subset_indices, self.labeled_idx)
+        n_labeled = int(train_subset_size * ratio_labeled)
+        self.labeled_idx = np.random.choice(train_subset_indices, size=n_labeled, replace=False)
+        self.unlabeled_idx = np.setdiff1d(train_subset_indices, self.labeled_idx)
+        self.last_labeled_idx = np.empty(0)
+
+        # get random test set
+        test_all_idx = np.arange(test_size)
+        self.test_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
 
         # TODO Implement class balancing
         # Suggested way to do this:
@@ -61,13 +117,23 @@ class ActiveDataset():
         # np.random.choice(class_i_indices, size=class_i_size, replace=False)
         
     def __get_from_source(self, source):
+        # TODO fix pathing, instead of '../../data' make it a statis variable (or something)
+
         if source == "mnist":
-            self.train_dataset = MNIST(root="../data", download=False, train=True, 
+            self._full_train_set = MNIST(root="../../data", download=False, train=True, 
                                        transform=ToTensor(),
                                        target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self.test_dataset = MNIST(root="../data", download=False, train=False, 
+            self._full_test_set = MNIST(root="../../data", download=False, train=False, 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+        elif source == "fashion":
+            self._full_train_set = FashionMNIST(root="../../data", download=False, train=True, 
+                                       transform=ToTensor(),
+                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = FashionMNIST(root="../../data", download=False, train=False, 
+                                      transform=ToTensor(),
+                                      target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+        
         elif source == "pcam":
             raise NotImplementedError
             # self.train_dataset = PCAM(root="./data", download=False, train=True, transform=ToTensor())
@@ -75,29 +141,39 @@ class ActiveDataset():
         else:
             raise ValueError("Invalid source name")
 
-    def get_label_by_idx(self, idx, move_sample=True):
+    def get_label_by_idx(self, indices, move_sample=True):
         """
         Gets the label of an unlabeled sample.
 
         Arguments:
-            `idx` (int): index of the sample in the **unlabeled** set\n
+            `idx` (int): index of the sample in the **unlabeled** subset\n
         Parameters:
             `move_sample` (bool): decided whether to move the sample to the labeled
         """
 
-        global_idx = self.unlabeled_idx[idx]
+        self.last_labeled_idx = self.unlabeled_idx[indices]
+
+        # ensure indices dimension is not 0 (it's 0 when it's just a number i.e. one index not a list)
+        if len(self.last_labeled_idx.shape) == 0:
+            self.last_labeled_idx = self.last_labeled_idx.reshape(-1) 
+
         if move_sample:
-            self.labeled_idx = np.concatenate([self.labeled_idx, [global_idx]])
-            self.unlabeled_idx = np.concatenate([self.unlabeled_idx[:idx], self.unlabeled_idx[idx+1:]])
-        return self.train_dataset[global_idx][1]
+            self._cached_labeled_set = None
+            self._cached_unlabeled_set = None
+            self._cached_last_labeled_set = None
+            self.labeled_idx = np.concatenate([self.labeled_idx, self.last_labeled_idx])
+            self.unlabeled_idx = np.setdiff1d(self.unlabeled_idx, self.labeled_idx)
+        return [self._full_train_set.targets[global_idx] for global_idx in self.last_labeled_idx]
+        
     
 
 def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:
-        MNIST(root = './data/', download = True)
-        PCAM(root='./data', download=True)
+        MNIST(root = '../../data/', download = True)
+        PCAM(root='../../data', download=True)
+        FashionMNIST(root='../../data', download=True)
     else:
         print("Aborted.")
 
