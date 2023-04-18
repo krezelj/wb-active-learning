@@ -130,6 +130,10 @@ class ActiveLearner():
         """
         criterion: 'entropy' | 'margin' | 'confidence' | 'random' |
         """
+
+        if criterion == 'random':
+            return np.random.choice(np.arange(len(unlabeled_loader.dataset)), size=batch_size, replace=False), None
+
         y_predicted = self.predict(unlabeled_loader)
 
         # TODO right now this is tied to MNISTClassifier model that outputs logits
@@ -141,9 +145,7 @@ class ActiveLearner():
         elif criterion == 'margin':
             uncertainties = ActiveLearner.__calculate_samples_margin(y_predicted)
         elif criterion == 'confidence':
-            uncertainties = ActiveLearner.__calculate_samples_confidence(y_predicted)
-        elif criterion == 'random':
-            return np.random.choice(np.arange(len(unlabeled_loader.dataset)), size=batch_size, replace=False), None
+            uncertainties = ActiveLearner.__calculate_samples_confidence(y_predicted)    
         else:
             raise ValueError("Invalid criterion. Must be one of `entropy`, `margin`, `confidence`")
         
