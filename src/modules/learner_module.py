@@ -19,6 +19,32 @@ class ActiveLearner():
             outputs = self.model(inputs)
         return outputs
     
+    def predict(self, data_loader):        
+        all_outputs = []
+        with torch.no_grad():
+            for data in data_loader:
+                inputs, *_ = data
+                inputs = inputs.to(self.device)
+
+                outputs = self(inputs)
+                all_outputs.append(outputs)
+
+        return torch.cat(all_outputs)
+
+    def validate(self, validation_loader, loss_function):
+        running_vloss = 0.0
+
+        with torch.no_grad():
+            for i, vdata in enumerate(validation_loader):
+                vinputs, vlabels, *_ = vdata
+                vinputs = vinputs.to(self.device)
+                vlabels = vlabels.to(self.device)
+
+                voutputs = self(vinputs)
+                vloss = loss_function(voutputs, vlabels)
+                running_vloss += vloss.item()
+
+        return running_vloss / (i + 1)
 
     def fit(self, training_loader, validation_loader, 
             optimizer, loss_function, 
@@ -73,22 +99,6 @@ class ActiveLearner():
         self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
         return avg_loss_history, avg_vloss_history
 
-
-    def validate(self, validation_loader, loss_function):
-        running_vloss = 0.0
-
-        with torch.no_grad():
-            for i, vdata in enumerate(validation_loader):
-                vinputs, vlabels, *_ = vdata
-                vinputs = vinputs.to(self.device)
-                vlabels = vlabels.to(self.device)
-
-                voutputs = self(vinputs)
-                vloss = loss_function(voutputs, vlabels)
-                running_vloss += vloss.item()
-
-        return running_vloss / (i + 1)
-
     def __train_one_epoch(self, training_loader, loss_function, optimizer, sample_weights):
         running_loss = 0.0
 
@@ -118,19 +128,6 @@ class ActiveLearner():
             running_loss += loss.item()
 
         return running_loss / (i + 1)
-
-    def predict(self, data_loader):        
-        all_outputs = []
-        with torch.no_grad():
-            for data in data_loader:
-                inputs, *_ = data
-                inputs = inputs.to(self.device)
-
-                outputs = self(inputs)
-                all_outputs.append(outputs)
-
-        return torch.cat(all_outputs)
-
 
     def generate_query(self, unlabeled_loader, criterion='entropy', batch_size=1):
         """
