@@ -19,12 +19,39 @@ class ActiveLearner():
             outputs = self.model(inputs)
         return outputs
     
+    def predict(self, data_loader):        
+        all_outputs = []
+        with torch.no_grad():
+            for data in data_loader:
+                inputs, *_ = data
+                inputs = inputs.to(self.device)
+
+                outputs = self(inputs)
+                all_outputs.append(outputs)
+
+        return torch.cat(all_outputs)
+
+    def validate(self, validation_loader, loss_function):
+        running_vloss = 0.0
+
+        with torch.no_grad():
+            for i, vdata in enumerate(validation_loader):
+                vinputs, vlabels, *_ = vdata
+                vinputs = vinputs.to(self.device)
+                vlabels = vlabels.to(self.device)
+
+                voutputs = self(vinputs)
+                vloss = loss_function(voutputs, vlabels)
+                running_vloss += vloss.item()
+
+        return running_vloss / (i + 1)
 
     def fit(self, training_loader, validation_loader, 
             optimizer, loss_function, 
             epochs=1, 
             early_stopping=False,
-            sample_weights=None):
+            sample_weights=None,
+            verbose=0):
 
         avg_loss_history = []
         avg_vloss_history = []
@@ -51,7 +78,8 @@ class ActiveLearner():
             avg_vloss_history.append(avg_vloss)
             
             # print info
-            print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
+            if verbose > 0:
+                print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
             if avg_vloss < min_avg_vloss:
                 epochs_since_last_improvement = 0
@@ -61,7 +89,8 @@ class ActiveLearner():
                 epochs_since_last_improvement += 1
             if early_stopping:
                 if epochs_since_last_improvement == max_epochs_since_improvement:
-                    print("Stopping Early...")
+                    if verbose > 0: 
+                        print("Stopping Early...")
                     self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
                     return avg_loss_history, avg_vloss_history
 
@@ -70,27 +99,14 @@ class ActiveLearner():
         self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
         return avg_loss_history, avg_vloss_history
 
-
-    def validate(self, validation_loader, loss_function):
-        running_vloss = 0.0
-
-        with torch.no_grad():
-            for i, vdata in enumerate(validation_loader):
-                vinputs, vlabels, *_ = vdata
-                vinputs = vinputs.to(self.device)
-                vlabels = vlabels.to(self.device)
-
-                voutputs = self(vinputs)
-                vloss = loss_function(voutputs, vlabels)
-                running_vloss += vloss.item()
-
-        return running_vloss / (i + 1)
-
     def __train_one_epoch(self, training_loader, loss_function, optimizer, sample_weights):
         running_loss = 0.0
 
         for i, data in enumerate(training_loader):
-            inputs, labels, idx = data
+            inputs, labels, *idx = data
+            if len(idx) > 0: 
+                idx = idx[0]
+
             inputs = inputs.to(self.device)
             labels = labels.to(self.device)
 
@@ -112,19 +128,6 @@ class ActiveLearner():
             running_loss += loss.item()
 
         return running_loss / (i + 1)
-
-    def predict(self, data_loader):        
-        all_outputs = []
-        with torch.no_grad():
-            for data in data_loader:
-                inputs, *_ = data
-                inputs = inputs.to(self.device)
-
-                outputs = self(inputs)
-                all_outputs.append(outputs)
-
-        return torch.cat(all_outputs)
-
 
     def generate_query(self, unlabeled_loader, criterion='entropy', batch_size=1):
         """

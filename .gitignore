@@ -3,6 +3,7 @@ notebooks/personal/*.ipynb
 *.pyc
 *.pt
 *.pth
+*.csv
 
 # directories
 data

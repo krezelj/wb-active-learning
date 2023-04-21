@@ -18,13 +18,6 @@ class IndexedSubset(Subset):
 
 class ActiveDataset():
     
-    # TODO Add sample weights as property
-    # weights only apply to labeled samples
-    # additionally there should be a function "update_weights"
-    # that updates the weights based on the number of feedback loop iterations
-    # 
-    # The exact implementation is to be discussed
-
     __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
                  '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']
 
