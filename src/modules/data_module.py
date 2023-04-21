@@ -158,7 +158,19 @@ class ActiveDataset():
             self.unlabeled_idx = np.setdiff1d(self.unlabeled_idx, self.labeled_idx)
         return [self._full_train_set.targets[global_idx] for global_idx in self.last_labeled_idx]
         
-    
+    def get_bootstrap_set(self, size=None, weights=None):
+        if size is None:
+            size = len(self.labeled_idx)
+        if weights is None:
+            weights = np.ones(size)
+        elif type(weights) == torch.Tensor:
+            weights = weights.detach().numpy()
+        p = weights / np.sum(weights)
+            
+
+        bootstrap_idx = np.random.choice(self.labeled_idx, size=size, replace=True, p=p)
+        return IndexedSubset(self._full_train_set, bootstrap_idx)
+
 
 def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
