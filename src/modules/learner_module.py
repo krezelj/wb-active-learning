@@ -162,7 +162,7 @@ class ActiveLearner():
     # I'm not sure if they belong here
     @classmethod
     def __calculate_samples_entropy(cls, y_predicted):
-        return -torch.sum(torch.mul(y_predicted, torch.log(y_predicted)), dim=1)
+        return -torch.sum(torch.mul(y_predicted, torch.log(torch.maximum(y_predicted, torch.tensor(1e-8)))), dim=1)
 
     @classmethod
     def __calculate_samples_margin(cls, y_predicted):
