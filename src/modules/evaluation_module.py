@@ -43,7 +43,9 @@ class Evaluation():
             self._query_count[session.all_queried_idx] += 1
 
     def to_csv(self, path):
-        raise NotImplementedError
+        with open(path, 'w') as f:
+            for i in range(len(self._unlabeled_count)):
+                f.write(f"{self._unlabeled_count[i]},{self._query_count[i]}\n")
     
 
 def from_csv() -> Evaluation:
