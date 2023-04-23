@@ -23,9 +23,7 @@ class Evaluation():
     def __init__(self, dataset_size, sessions = []) -> None:
         self._unlabeled_count = np.zeros(dataset_size)
         self._query_count = np.zeros(dataset_size)
-
-        for session in sessions:
-            self.append(session)
+        self.append(sessions)
 
     @property
     def frequency(self):
@@ -37,9 +35,12 @@ class Evaluation():
             out=np.zeros_like(self._query_count), 
             where=self._unlabeled_count != 0)
 
-    def append(self, session : Session):
-        self._unlabeled_count[session.initial_unlabeled_idx] += 1
-        self._query_count[session.all_queried_idx] += 1
+    def append(self, sessions : Session):
+        if type(sessions) is Session:
+            sessions = [sessions]
+        for session in sessions:
+            self._unlabeled_count[session.initial_unlabeled_idx] += 1
+            self._query_count[session.all_queried_idx] += 1
 
     def to_csv(self, path):
         raise NotImplementedError
