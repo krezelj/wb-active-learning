@@ -16,18 +16,28 @@ class Session():
 
 class Evaluation():
 
-    __slots__ = ['unlabeled_count', 'query_count', 'n_sessions']
+    __slots__ = ['_unlabeled_count', '_query_count']
 
-    def __init__(self, dataset_size, sessions) -> None:
-        self.unlabeled_count = np.zeros(dataset_size)
-        self.query_count = np.zeros(dataset_size)
-        self.n_sessions = len(sessions)
+    def __init__(self, dataset_size, sessions = []) -> None:
+        self._unlabeled_count = np.zeros(dataset_size)
+        self._query_count = np.zeros(dataset_size)
 
-        # TODO
+        for session in sessions:
+            self.append(session)
 
-    def append(self, session):
-        raise NotImplementedError
-    
+    @property
+    def frequency(self):
+        # doing the division this way ensured that if unlabeled_count[i] == 0
+        # then frequency[i] == 0 instead of throwing an exception.
+        return np.divide(
+            self._query_count, 
+            self._unlabeled_count, 
+            out=np.zeros_like(self._query_count), 
+            where=self._unlabeled_count != 0)
+
+    def append(self, session : Session):
+        self._unlabeled_count[session.initial_unlabeled_idx] += 1
+        self._query_count[session.all_queried_idx] += 1
 
     def to_csv(self, path):
         raise NotImplementedError
