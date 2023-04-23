@@ -3,15 +3,17 @@ import numpy as np
 
 class Session():
     
-    __slots__ = ['learner', 'initial_unlabeled_idx', 'all_queried_idx']
+    __slots__ = ['dataset', 'learner', 'initial_unlabeled_idx', 'all_queried_idx']
 
-    def __init__(self, learner, unlabeled_idx) -> None:
+    def __init__(self, dataset, learner) -> None:
+        self.dataset = dataset
         self.learner = learner
-        self.initial_unlabeled_idx = unlabeled_idx
+
+        self.initial_unlabeled_idx = dataset.unlabeled_idx
         self.all_queried_idx = np.empty()
 
-    def append(self, queried_idx):
-        self.all_queried_idx = np.concatenate([self.all_queried_idx, queried_idx])
+    def update(self):
+        self.all_queried_idx = np.concatenate([self.all_queried_idx, self.dataset.last_labeled_idx])
 
 
 class Evaluation():
