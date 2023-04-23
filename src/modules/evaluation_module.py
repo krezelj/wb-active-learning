@@ -32,7 +32,7 @@ class Evaluation():
         return np.divide(
             self._query_count, 
             self._unlabeled_count, 
-            out=np.zeros_like(self._query_count), 
+            out=np.zeros_like(self._query_count).astype(np.float32), 
             where=self._unlabeled_count != 0)
 
     def append(self, sessions : Session):
