@@ -17,6 +17,8 @@ class IndexedSubset(Subset):
 
 
 class ActiveDataset():
+
+    # TODO Add ability to manually set test set so that it's consistent across several tests
     
     __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
                  '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']

@@ -154,7 +154,9 @@ class ActiveLearner():
         
 
         # myopical batch-mode most queries
-        queries = torch.topk(uncertainties.flatten(), batch_size).indices
+        queries = torch.topk(uncertainties.flatten(), batch_size)
+        
+        # TODO return predictions as well (predictions before applying softmax, i.e. raw predictions)
         return queries, uncertainties[queries]
     
 
