@@ -21,8 +21,8 @@ class Evaluation():
     __slots__ = ['_unlabeled_count', '_query_count']
 
     def __init__(self, dataset_size, sessions = []) -> None:
-        self._unlabeled_count = np.zeros(dataset_size)
-        self._query_count = np.zeros(dataset_size)
+        self._unlabeled_count = np.zeros(dataset_size, dtype=np.int32)
+        self._query_count = np.zeros(dataset_size, dtype=np.int32)
         self.append(sessions)
 
     @property
@@ -42,10 +42,29 @@ class Evaluation():
             self._unlabeled_count[session.initial_unlabeled_idx] += 1
             self._query_count[session.all_queried_idx] += 1
 
+    def merge(self, other, inplace=False):
+        assert(type(other) is Evaluation)
+        assert(len(self) == len(other))
+
+        if not inplace:
+            new_evaluation = Evaluation(len(self))
+            new_evaluation.merge(self, inplace=True)
+            new_evaluation.merge(other, inplace=True)
+            return new_evaluation
+        else:
+            self._unlabeled_count += other._unlabeled_count
+            self._query_count += other._query_count
+        return None
+            
+
     def to_csv(self, path):
         with open(path, 'w') as f:
             for i in range(len(self._unlabeled_count)):
                 f.write(f"{self._unlabeled_count[i]},{self._query_count[i]}\n")
+
+    
+    def __len__(self):
+        return len(self._unlabeled_count)
     
 
 def from_csv() -> Evaluation:
