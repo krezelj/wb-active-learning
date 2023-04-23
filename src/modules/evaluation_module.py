@@ -10,7 +10,7 @@ class Session():
         self.learner = learner
 
         self.initial_unlabeled_idx = dataset.unlabeled_idx
-        self.all_queried_idx = np.empty()
+        self.all_queried_idx = np.empty(0)
 
     def update(self):
         self.all_queried_idx = np.concatenate([self.all_queried_idx, self.dataset.last_labeled_idx])
