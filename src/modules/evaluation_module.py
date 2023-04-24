@@ -89,5 +89,13 @@ class Evaluation():
         return len(self._unlabeled_count)
     
 
-def from_csv() -> Evaluation:
-    raise NotImplementedError
+def from_csv(path) -> Evaluation:
+    with open(path, 'r') as f:
+        lines = f.readlines()
+        evaluation = Evaluation(len(lines))
+        for i, line in enumerate(lines):
+            u, q = line.split(',')
+            evaluation._unlabeled_count[i] = int(u)
+            evaluation._query_count[i] = int(q)
+
+    return evaluation
