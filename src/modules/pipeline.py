@@ -9,7 +9,7 @@ class Pipeline():
     
     __slots__ = ['data_set', 'learner', 'optimizer', 
                  'loss_function', 'n_queries', 'init_epochs', 
-                 'epochs_per_query', 'query_batch_size']
+                 'epochs_per_query', 'query_batch_size', 'test_loader', 'train_loader']
 
     def __init__(self):
         self.data_set = None
