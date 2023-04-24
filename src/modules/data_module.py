@@ -1,7 +1,7 @@
 import torch
 from torchvision.datasets import MNIST, PCAM, FashionMNIST
 from torchvision.transforms import ToTensor, Lambda
-from torch.utils.data import Subset, DataLoader
+from torch.utils.data import Subset
 import numpy as np
 
 
@@ -93,55 +93,54 @@ class ActiveDataset():
         # this is necessary for easier evaluation later on
         train_all_idx = np.arange(train_size)
         if balanced_split:
-            classes_idx = {}
-            for target in range(len(self._full_train_set.classes)):
-                idx = np.where(self._full_train_set.targets == target)[0]
-                classes_idx[target] = idx
-
-            sizes = {}
-            if sum(ratio_classes) != 1:
-                raise ValueError("Ratios of the classes should sum to 1")
-            
-            for i, ratio in enumerate(ratio_classes):
-                class_size = int(ratio*train_subset_size)
-                sizes[i] = class_size
-
-            classes_idx_subsets = {}
-            for key in classes_idx:
-                class_indexes = classes_idx[key]
-                
-                if len(class_indexes) == 0:
-                    raise ValueError(f"There are not any indexes connected to class {self._full_train_set.classes[key]}")
-                class_subset_indexes = np.random.choice(class_indexes, size=sizes[key], replace=False)
-
-                if len(class_subset_indexes) == 0:
-                    raise ValueError(f"In the subset there are not any indexes connected to class {self._full_train_set.classes[key]}")
-                classes_idx_subsets[key] = class_subset_indexes
-
-            train_subset_indices = []
-            for value in classes_idx_subsets.values():
-                train_subset_indices.extend(value)
-            train_subset_indices = np.array(train_subset_indices)
+            train_subset_idx  = self.__get_balanced_train_subset(ratio_classes,train_subset_size)
 
         else:  
-            train_subset_indices = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
+            train_subset_idx  = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
 
         n_labeled = int(train_subset_size * ratio_labeled)
-        self.labeled_idx = np.random.choice(train_subset_indices, size=n_labeled, replace=False)
-        self.unlabeled_idx = np.setdiff1d(train_subset_indices, self.labeled_idx)
+        self.labeled_idx = np.random.choice(train_subset_idx , size=n_labeled, replace=False)
+        self.unlabeled_idx = np.setdiff1d(train_subset_idx , self.labeled_idx)
         self.last_labeled_idx = np.empty(0)
 
         # get random test set
         test_all_idx = np.arange(test_size)
         self.test_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
         
+    def __get_balanced_train_subset(self, ratio_classes,train_subset_size):
+        classes_idx = {}
+        for target in range(len(self._full_train_set.classes)):
+            idx = np.where(self._full_train_set.targets == target)[0]
+            classes_idx[target] = idx
 
-        # TODO Implement class balancing
-        # Suggested way to do this:
-        # for each class calculate number of samples of that class (class_i_proportion * subset_size)
-        # get indices of all classes in separate arrays (one array per class containing indices for all samples of that class)
-        # np.random.choice(class_i_indices, size=class_i_size, replace=False)
+        if sum(ratio_classes) != 1:
+            raise ValueError("Ratios of the classes should sum to 1")
         
+        if len(ratio_classes) != len(self._full_train_set.classes):
+            raise ValueError("Ratio classes arrays should be same length as total number of classes.")
+        
+        classes_size = {}
+        for i, ratio in enumerate(ratio_classes):
+            classes_size[i] = int(ratio*train_subset_size)
+
+        classes_idx_subsets = {}
+        for key, class_idx in classes_idx.items():
+            class_indexes = class_idx
+            
+            if len(class_indexes) == 0:
+                raise ValueError(f"There are not any indexes connected to class {self._full_train_set.classes[key]}")
+            subset_idx_for_class = np.random.choice(class_indexes, size=classes_size[key], replace=False)
+
+            if len(subset_idx_for_class) == 0:
+                raise ValueError(f"In the subset there are not any indexes connected to class {self._full_train_set.classes[key]}")
+            classes_idx_subsets[key] = subset_idx_for_class
+
+        train_subset_idx  = []
+        for value in classes_idx_subsets.values():
+            train_subset_idx .extend(value)
+        train_subset_idx  = np.array(train_subset_idx )
+        return train_subset_idx 
+    
     def __get_from_source(self, source):
         # TODO fix pathing, instead of '../../data' make it a statis variable (or something)
 
