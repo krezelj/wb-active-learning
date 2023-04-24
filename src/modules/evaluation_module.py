@@ -34,6 +34,12 @@ class Evaluation():
             self._unlabeled_count, 
             out=np.zeros_like(self._query_count).astype(np.float32), 
             where=self._unlabeled_count != 0)
+    
+
+    def topk(self, k):
+        fq_zip = zip(self.frequency, self._query_count, np.arange(60000))
+        fq_sorted = sorted(fq_zip, key=lambda x : (x[0], x[1]), reverse=True)
+        return np.array([idx for _, _, idx in fq_sorted[:k]])
 
     def append(self, sessions : Session):
         if type(sessions) is Session:
