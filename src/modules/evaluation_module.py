@@ -89,7 +89,7 @@ class Evaluation():
         return len(self._unlabeled_count)
     
 
-def from_csv(path) -> Evaluation:
+def read_csv(path) -> Evaluation:
     with open(path, 'r') as f:
         lines = f.readlines()
         evaluation = Evaluation(len(lines))
