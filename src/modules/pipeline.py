@@ -1,24 +1,19 @@
 from torcheval.metrics.functional import multiclass_f1_score, multiclass_accuracy
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Subset, Dataset, DataLoader
-from torcheval.metrics.functional import multiclass_f1_score, multiclass_accuracy
-from torchvision.datasets import FashionMNIST
-
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
+from torch.utils.data import DataLoader
 
 import src.modules.data_module as dm
 import src.modules.learner_module as lm
-import src.models as models
+
 
 class Pipeline():
+    
+    __slots__ = ['data_set', 'learner', 'optimizer', 
+                 'loss_function', 'n_queries', 'init_epochs', 
+                 'epochs_per_query', 'query_batch_size']
+
     def __init__(self):
         self.data_set = None
-        self. learner = None
+        self.learner = None
         self.optimizer = None
         self.loss_function = None
         self.n_queries = None
@@ -41,7 +36,7 @@ class Pipeline():
         self.query_batch_size = query_batch_size
     
     def transform(self):
-        t_hist_all, v_hist_all = self.learner.fit(self.training_loader, self.test_loader,
+        t_hist_all, v_hist_all = self.learner.fit(self.train_loader, self.test_loader,
                                                     self.optimizer, self.loss_function, 
                                                     early_stopping=True, epochs=self.init_epochs)
         a_hist_all = []
@@ -56,9 +51,9 @@ class Pipeline():
             self.data_set.get_label_by_idx(queries, move_sample=True)
             print(f"Max uncertainty: {uncertainty}")
             
-            training_loader = DataLoader(self.data_set.labeled_set, batch_size=32, shuffle=True)
+            self.train_loader = DataLoader(self.data_set.labeled_set, batch_size=32, shuffle=True)
 
-            t_hist, v_hist = self.learner.fit(training_loader, self.test_loader, self.optimizer,
+            t_hist, v_hist = self.learner.fit(self.train_loader, self.test_loader, self.optimizer,
                                                self.loss_function, epochs=self.epochs_per_query, 
                                                early_stopping=True, sample_weights=None)
                                         
