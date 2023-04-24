@@ -38,10 +38,12 @@ class Evaluation():
 
     def top_queried(self, k, most_queried=True):
         # if most queried is False then the least queried are returned
-        fq_zip = zip(self.frequency, self._query_count, np.arange(60000))
-        reverse = 1 if most_queried else -1
-        fq_sorted = sorted(fq_zip, key=lambda x : (reverse * x[0], x[1]), reverse=True)
-        return np.array([idx for _, _, idx in fq_sorted[:k]])
+        fq_zip = zip(self.frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+        if most_queried:
+            fq_sorted = sorted(fq_zip, key=lambda x : (x[0], x[1]), reverse=True)
+        else:
+            fq_sorted = sorted(fq_zip, key=lambda x : (x[0], -x[2]))
+        return np.array([idx for *_, idx in fq_sorted[:k]])
 
     def append(self, sessions : Session):
         if type(sessions) is Session:
