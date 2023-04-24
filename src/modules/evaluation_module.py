@@ -35,10 +35,22 @@ class Evaluation():
             out=np.zeros_like(self._query_count).astype(np.float32), 
             where=self._unlabeled_count != 0)
     
+    @property
+    def estimate_frequency(self):
+        # assume two more sessions are added, in one each sample was chosen and in the other
+        # none of the samples were chosen, calculate frequency based on that
+        return np.divide(
+            self._query_count + 1, 
+            self._unlabeled_count + 2)
+    
 
-    def top_queried(self, k, most_queried=True):
+    def top_queried(self, k, most_queried=True, use_estimate=True):
         # if most queried is False then the least queried are returned
-        fq_zip = zip(self.frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+        if use_estimate:
+            fq_zip = zip(self.estimate_frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+        else:
+            fq_zip = zip(self.frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+        
         if most_queried:
             fq_sorted = sorted(fq_zip, key=lambda x : (x[0], x[1]), reverse=True)
         else:
