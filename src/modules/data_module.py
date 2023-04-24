@@ -157,7 +157,7 @@ class ActiveDataset():
             idx = np.where(self._full_train_set.targets == target)[0]
             classes_idx[target] = idx
 
-        if sum(ratio_classes) != 1:
+        if abs(sum(ratio_classes) - 1) > 10**(-10):
             raise ValueError("Ratios of the classes should sum to 1")
         
         if len(ratio_classes) != len(self._full_train_set.classes):
