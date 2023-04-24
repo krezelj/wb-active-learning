@@ -1,8 +1,46 @@
+import os
+
 import torch
 from torchvision.datasets import MNIST, PCAM, FashionMNIST
 from torchvision.transforms import ToTensor, Lambda
 from torch.utils.data import Subset
 import numpy as np
+
+
+# Note: this variable should not be updated directly.
+# Instead, use the update_data_dir() function to ensure that the stored path
+# is always absolute.
+_data_dir = ''
+# (default value for __data_dir is assigned below update_data_dir() function declaration)
+
+
+def update_data_dir(path, silent=False):
+    """
+    Updates the path to a directory where datasets are stored and downloaded to
+
+    Arguments:
+        `path` (str|os.PathLike): path to a new data directory\n
+    Parameters:
+        `silent` (bool): whether to notify about the new path
+    """
+    # expanduser: to process paths that begin with ~ on unix
+    # expandvars: to handle environmental vars in a path such as $HOME
+    path_absolute = os.path.abspath(
+        os.path.expanduser(
+            os.path.expandvars(path)
+        )
+    )
+    global _data_dir
+    _data_dir = path_absolute
+    if not silent:
+        print(f'Data directory set to: {_data_dir}')
+
+
+# initialise a default data directory:
+update_data_dir('./data', silent=True)
+print(f'Default data directory set to {_data_dir}')
+print('To change this path, use the update_data_dir() function '
+      'from the data_module')
 
 
 class IndexedSubset(Subset):
@@ -144,22 +182,20 @@ class ActiveDataset():
         return train_subset_idx 
     
     def __get_from_source(self, source):
-        # TODO fix pathing, instead of '../../data' make it a statis variable (or something)
-
         if source == "mnist":
-            self._full_train_set = MNIST(root="../../data", download=False, train=True, 
-                                       transform=ToTensor(),
-                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self._full_test_set = MNIST(root="../../data", download=False, train=False, 
-                                      transform=ToTensor(),
-                                      target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_train_set = MNIST(root=_data_dir, download=False, train=True,
+                                         transform=ToTensor(),
+                                         target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = MNIST(root=_data_dir, download=False, train=False,
+                                        transform=ToTensor(),
+                                        target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         elif source == "fashion":
-            self._full_train_set = FashionMNIST(root="../../data", download=False, train=True, 
-                                       transform=ToTensor(),
-                                       target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self._full_test_set = FashionMNIST(root="../../data", download=False, train=False, 
-                                      transform=ToTensor(),
-                                      target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_train_set = FashionMNIST(root=_data_dir, download=False, train=True,
+                                                transform=ToTensor(),
+                                                target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = FashionMNIST(root=_data_dir, download=False, train=False,
+                                               transform=ToTensor(),
+                                               target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         
         elif source == "pcam":
             raise NotImplementedError
@@ -210,9 +246,9 @@ def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:
-        MNIST(root = '../../data/', download = True)
-        PCAM(root='../../data', download=True)
-        FashionMNIST(root='../../data', download=True)
+        MNIST(root=_data_dir, download = True)
+        PCAM(root=_data_dir, download=True)
+        FashionMNIST(root=_data_dir, download=True)
     else:
         print("Aborted.")
 
