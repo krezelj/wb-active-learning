@@ -93,7 +93,9 @@ class ActiveDataset():
         # this is necessary for easier evaluation later on
         train_all_idx = np.arange(train_size)
         if balanced_split:
-            train_subset_idx  = self.__get_balanced_train_subset(ratio_classes,train_subset_size)
+            train_subset_idx  = self.__get_balanced_train_subset(train_subset_size, 
+                                                                 ratio_classes = np.ones(len(self._full_train_set.classes))/
+                                                                 len(self._full_train_set.classes))
 
         else:  
             train_subset_idx  = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
@@ -107,7 +109,7 @@ class ActiveDataset():
         test_all_idx = np.arange(test_size)
         self.test_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
         
-    def __get_balanced_train_subset(self, ratio_classes,train_subset_size):
+    def __get_balanced_train_subset(self,train_subset_size, ratio_classes):
         classes_idx = {}
         for target in range(len(self._full_train_set.classes)):
             idx = np.where(self._full_train_set.targets == target)[0]
