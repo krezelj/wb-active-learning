@@ -1,3 +1,5 @@
+import os
+
 import torch.nn as nn
 import torch
 import numpy as np
@@ -63,6 +65,10 @@ class ActiveLearner():
         epochs_since_last_improvement = 0
         threshold = 0.001
 
+        # create a temporary directory for model states if it doesn't exist yet
+        model_state_dir = './temp_model_states'
+        os.makedirs(model_state_dir, exist_ok=True)
+
         for epoch in range(epochs):
 
             # train model
@@ -83,7 +89,7 @@ class ActiveLearner():
 
             if avg_vloss < min_avg_vloss:
                 epochs_since_last_improvement = 0
-                torch.save(self.model.state_dict(), 'temp_model_states/best_model.pth')
+                torch.save(self.model.state_dict(), f'{model_state_dir}/best_model.pth')
                 min_avg_vloss = avg_vloss
             elif avg_vloss > min_avg_vloss + threshold:
                 epochs_since_last_improvement += 1
@@ -91,12 +97,12 @@ class ActiveLearner():
                 if epochs_since_last_improvement == max_epochs_since_improvement:
                     if verbose > 0: 
                         print("Stopping Early...")
-                    self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
+                    self.model.load_state_dict(torch.load(f'{model_state_dir}/best_model.pth'))
                     return avg_loss_history, avg_vloss_history
 
         # TODO Add a flag whether the best model should be retrived or not
         # (maybe the user wants the laters model to be present)
-        self.model.load_state_dict(torch.load('temp_model_states/best_model.pth'))
+        self.model.load_state_dict(torch.load(f'{model_state_dir}/best_model.pth'))
         return avg_loss_history, avg_vloss_history
 
     def __train_one_epoch(self, training_loader, loss_function, optimizer, sample_weights):
