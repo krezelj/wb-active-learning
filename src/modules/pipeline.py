@@ -30,15 +30,22 @@ class Pipeline:
             settings = PipelineSettings.from_dict(settings)
         self.settings: PipelineSettings = settings
 
-    def run(self, verbose: int = 0) -> tuple[em.Session, dict[str, list[float]]]:
+    def run(self, verbose: int = 0,
+            calculate_accuracy=False,
+            calculate_f1_score=False) -> tuple[em.Session, dict[str, list[float]]]:
         """
         Runs the pipeline. Return a Session object as well as a dict of stats, which contains
-        loss history on train and test and accuracy history.
+        loss history on train & test and accuracy & f1 score history.
 
-        Verbosity:
-        0 - silent
-        1 - display iteration count
-        2 - display max uncertainties in every iteration
+        Arguments:
+            `verbose`:
+                0 - silent
+                1 - display iteration count
+                2 - display max uncertainties in every iteration
+            `calculate_accuracy`: Whether or not to calculate predictions
+                accuracy after every iteration.
+            `calculate_f1_score`: Whether or not to calculate predictions
+                F1 score after every iteration.
 
         Pseudocode:
 
@@ -58,7 +65,14 @@ class Pipeline:
             epochs=self.settings.init_epochs,
             early_stopping=True,
         )
-        accuracy_history = [self._calculate_accuracy(self.test_loader).item()]
+        # initialise these anyway to keep the return type consistent:
+        accuracy_history = []
+        f1score_history = []
+
+        if calculate_accuracy:
+            accuracy_history.append(self._calculate_accuracy().item())
+        if calculate_f1_score:
+            f1score_history.append(self._calculate_f1_score().item())
 
         # initialise the session
         session = em.Session(dataset=self.dataset, learner=self.learner)
@@ -91,31 +105,37 @@ class Pipeline:
             # update session
             session.update()
 
-            # update loss/accuracy history
+            # update loss/accuracy/f1score history
             t_loss_history.extend(t_hist)
             v_loss_history.extend(v_hist)
-            accuracy_history.append(self._calculate_accuracy(self.test_loader).item())
+            if calculate_accuracy:
+                accuracy_history.append(self._calculate_accuracy().item())
+            if calculate_f1_score:
+                f1score_history.append(self._calculate_f1_score().item())
 
-        # pack loss/accuracy history arrays into one dict
+        # pack loss/accuracy/f1score history arrays into one dict
         stats_to_return = {
             't_loss_history': t_loss_history,
             'v_loss_history': v_loss_history,
             'accuracy_history': accuracy_history,
+            'f1score_history': f1score_history,
         }
         return session, stats_to_return
 
-    def _calculate_f1_score(self, test_loader):
-        outputs = self.learner.predict(test_loader)
+    def _calculate_f1_score(self):
+        outputs = self.learner.predict(self.test_loader)
         return multiclass_f1_score(
             outputs,
-            test_loader.dataset.dataset.targets[test_loader.dataset.indices]
+            self.test_loader.dataset.dataset.targets[
+                self.test_loader.dataset.indices]
         )
 
-    def _calculate_accuracy(self, test_loader):
-        outputs = self.learner.predict(test_loader)
+    def _calculate_accuracy(self):
+        outputs = self.learner.predict(self.test_loader)
         return multiclass_accuracy(
             outputs,
-            test_loader.dataset.dataset.targets[test_loader.dataset.indices]
+            self.test_loader.dataset.dataset.targets[
+                self.test_loader.dataset.indices]
         )
 
 class PipelineSettings:
