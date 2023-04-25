@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import json
-from typing import Any, Union
+from typing import Any, Union, Literal
 
 from torcheval.metrics.functional import multiclass_f1_score, multiclass_accuracy
 from torch.utils.data import DataLoader
@@ -65,7 +65,7 @@ class Pipeline:
             unlabeled_loader = DataLoader(self.dataset.unlabeled_set, batch_size=128, shuffle=False)
             queries, uncertainty = self.learner.generate_query(
                 unlabeled_loader,
-                criterion='entropy',
+                criterion=self.settings.query_criterion,
                 batch_size=self.settings.query_batch_size,
             )
             # label queries
@@ -111,17 +111,22 @@ class Pipeline:
             test_loader.dataset.dataset.targets[test_loader.dataset.indices]
         )
 
-
 class PipelineSettings:
 
-    __slots__ = ['n_queries', 'init_epochs', 'epochs_per_query', 'query_batch_size']
+    __slots__ = ['n_queries', 'init_epochs', 'epochs_per_query', 'query_batch_size',
+                 'query_criterion']
 
     def __init__(self, n_queries: int, init_epochs: int,
-                 epochs_per_query: int, query_batch_size: int = 100):
+                 epochs_per_query: int, query_batch_size: int = 100,
+                 query_criterion: str = 'entropy'):
+        """
+        criterion: 'entropy' | 'margin' | 'confidence' | 'random'
+        """
         self.n_queries = n_queries
         self.init_epochs = init_epochs
         self.epochs_per_query = epochs_per_query
         self.query_batch_size = query_batch_size
+        self.query_criterion = query_criterion
 
     @staticmethod
     def from_dict(settings_dict: dict[str, Any]) -> PipelineSettings:
@@ -135,6 +140,7 @@ class PipelineSettings:
                 init_epochs=settings_dict['init_epochs'],
                 epochs_per_query=settings_dict['epochs_per_query'],
                 query_batch_size=settings_dict['query_batch_size'],
+                query_criterion=settings_dict['query_criterion']
             )
             return settings_obj
         except KeyError:
@@ -149,6 +155,7 @@ class PipelineSettings:
             'init_epochs': self.init_epochs,
             'epochs_per_query': self.epochs_per_query,
             'query_batch_size': self.query_batch_size,
+            'query_criterion': self.query_criterion,
         }
 
     @staticmethod
