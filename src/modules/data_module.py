@@ -110,16 +110,18 @@ class ActiveDataset():
                  ratio_classes=None, 
                  balanced_split=True) -> None:
         """
-        Initialises the dataset object
+        Initialises the active dataset object
 
         Arguments:
-            `souce` ("mnist" | "pcam"): name of the source\n
-            `size` (int|float):\n
+            `source` ("mnist" | "fashion" | "pcam"): name of the source dataset.
+            `train_subset_size` (int|float): size of the train subset. If the argument is of type `float` it's treated as a ratio.
+            `test_subset_size` (int|float): size of the test subset. If the argument is of type `float` it's treated as a ratio.
         
         Parameters:
-            `ratio_labeled` (float):\n
-            `ratio_classes` (float):\n
-            `balanced_split` (boolean):\n
+            `test_idx` (numpy.array): manually sets the array of test indices. Overrules `test_subset_size` argument.
+            `ratio_labeled` (float): ratio of the train subset that is initially labeled.
+            `ratio_classes` (float): ratio of the classes in the train subset. If None equal unform distribution is generated.
+            `balanced_split` (boolean): decides whether to use `ratio_classes` to balance the split between classes.
         """
 
         self.__get_from_source(source)
