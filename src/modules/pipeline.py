@@ -30,10 +30,15 @@ class Pipeline:
             settings = PipelineSettings.from_dict(settings)
         self.settings: PipelineSettings = settings
 
-    def run(self) -> tuple[em.Session, dict[str, list[float]]]:
+    def run(self, verbose: int = 0) -> tuple[em.Session, dict[str, list[float]]]:
         """
         Runs the pipeline. Return a Session object as well as a dict of stats, which contains
-        loss history on train and test and accuracy history
+        loss history on train and test and accuracy history.
+
+        Verbosity:
+        0 - silent
+        1 - display iteration count
+        2 - display max uncertainties in every iteration
 
         Pseudocode:
 
@@ -59,7 +64,8 @@ class Pipeline:
         session = em.Session(dataset=self.dataset, learner=self.learner)
 
         for i in range(self.settings.n_queries):
-            print(f"Iteration: {i+1}")
+            if verbose > 0:
+                print(f"Iteration: {i+1}")
 
             # generate queries
             unlabeled_loader = DataLoader(self.dataset.unlabeled_set, batch_size=128, shuffle=False)
@@ -70,7 +76,8 @@ class Pipeline:
             )
             # label queries
             self.dataset.get_label_by_idx(queries, move_sample=True)
-            print(f"Max uncertainty: {uncertainty}")
+            if verbose > 1:
+                print(f"Max uncertainty: {uncertainty}")
             self.train_loader = DataLoader(self.dataset.labeled_set, batch_size=32, shuffle=True)
 
             # fit learner on updated train set
