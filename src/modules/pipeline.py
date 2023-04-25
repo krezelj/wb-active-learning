@@ -1,8 +1,14 @@
 from torcheval.metrics.functional import multiclass_f1_score, multiclass_accuracy
 from torch.utils.data import DataLoader
 
-import src.modules.data_module as dm
-import src.modules.learner_module as lm
+if __name__ == '__main__':
+    import data_module as dm
+    import learner_module as lm
+    import evaluation_module as em
+else:
+    import src.modules.data_module as dm
+    import src.modules.learner_module as lm
+    import src.modules.evaluation_module as em
 
 
 # class Pipeline():
@@ -80,9 +86,6 @@ import src.modules.learner_module as lm
 #         return multiclass_accuracy(outputs, test_loader.dataset.dataset.targets[test_loader.dataset.indices])
     
 
-
-import evaluation_module as em
-
 class Pipeline():
      
     __slots__ = ['ds', 'learner', 'settings']
@@ -110,7 +113,7 @@ class Pipeline():
 
 
 def main():
-    pass
+    print('test')
 
 if __name__ == '__main__':
     main()
