@@ -34,8 +34,11 @@ class ActiveLearner():
         return torch.cat(all_outputs)
 
     def validate(self, validation_loader, loss_function):
+        if len(validation_loader) == 0:
+            print("Warning! Empty validation_loader")
+            return np.nan
+        
         running_vloss = 0.0
-
         with torch.no_grad():
             for i, vdata in enumerate(validation_loader):
                 vinputs, vlabels, *_ = vdata
@@ -74,14 +77,16 @@ class ActiveLearner():
             # train model
             self.model.train(True)
             avg_loss = self.__train_one_epoch(training_loader, loss_function, optimizer, sample_weights)
+            avg_loss_history.append(avg_loss)
             self.model.train(False)
 
             # validate model
-            avg_vloss = self.validate(validation_loader, loss_function)
+            if validation_loader is not None:
+                avg_vloss = self.validate(validation_loader, loss_function)
+                avg_vloss_history.append(avg_vloss)
+            else:
+                avg_vloss = np.nan
 
-            # append to history
-            avg_loss_history.append(avg_loss)
-            avg_vloss_history.append(avg_vloss)
             
             # print info
             if verbose > 0:
