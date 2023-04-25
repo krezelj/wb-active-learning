@@ -47,9 +47,9 @@ class Evaluation():
     def top_queried(self, k, most_queried=True, use_estimate=True):
         # if most queried is False then the least queried are returned
         if use_estimate:
-            fq_zip = zip(self.estimate_frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+            fq_zip = zip(self.estimate_frequency, self._query_count, self._unlabeled_count, np.arange(len(self)))
         else:
-            fq_zip = zip(self.frequency, self._query_count, self._unlabeled_count, np.arange(60000))
+            fq_zip = zip(self.frequency, self._query_count, self._unlabeled_count, np.arange(len(self)))
         
         if most_queried:
             fq_sorted = sorted(fq_zip, key=lambda x : (x[0], x[1]), reverse=True)
