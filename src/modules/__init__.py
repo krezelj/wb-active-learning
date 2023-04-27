@@ -8,5 +8,6 @@ __all__ = [
     'ActiveLearner',
     'Session',
     'Evaluation',
-    'Pipeline'
+    'Pipeline',
+    'PipelineSettings'
 ]
