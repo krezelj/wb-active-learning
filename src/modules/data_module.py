@@ -212,9 +212,13 @@ class ActiveDataset():
                                                target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         
         elif source == "pcam":
-            raise NotImplementedError
-            # self.train_dataset = PCAM(root="./data", download=False, train=True, transform=ToTensor())
-            # self.test_dataset = PCAM(root="./data", download=False, train=False, transform=ToTensor())
+            # raise NotImplementedError
+            self._full_train_set = PCAM(root=_data_dir, download=False, split='train', 
+                                        transform=ToTensor(),
+                                        target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = PCAM(root=_data_dir, download=False, split='val', 
+                                      transform=ToTensor(),
+                                      target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         else:
             raise ValueError("Invalid source name")
 
@@ -260,9 +264,15 @@ def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:
-        MNIST(root=_data_dir, download = True)
-        PCAM(root=_data_dir, download=True)
-        FashionMNIST(root=_data_dir, download=True)
+        MNIST(root=_data_dir, download = True, train=False)
+        MNIST(root=_data_dir, download = True, train=True)
+
+        PCAM(root=_data_dir, download = True, split='train')
+        PCAM(root=_data_dir, download = True, split='val')
+        PCAM(root=_data_dir, download = True, split='test')
+
+        FashionMNIST(root=_data_dir, download=True, train=False)
+        FashionMNIST(root=_data_dir, download=True, train=True)
     else:
         print("Aborted.")
 
