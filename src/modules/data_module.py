@@ -1,4 +1,5 @@
 import os
+from typing import Callable, Optional, Any, Union, Literal
 
 import torch
 from torchvision.datasets import MNIST, PCAM, FashionMNIST
@@ -41,6 +42,42 @@ update_data_dir('./data', silent=True)
 print(f'Default data directory set to {_data_dir}')
 print('To change this path, use the update_data_dir() function '
       'from the data_module')
+
+
+
+class PCAMX(PCAM):
+    """
+    Extended implementation of the PCAM dataset that includes `classes` and `targets` fields.
+    """
+
+    class PCAMTargets():
+        """
+        Class for dynamic target loading.
+        """
+
+        __slots__ = ['parent_dataset']
+
+        def __init__(self, parent_dataset):
+            self.parent_dataset = parent_dataset
+
+        def __getitem__(self, idxs):
+            idxs = np.reshape(idxs, -1)
+
+            targets_file = self.parent_dataset._FILES[self.parent_dataset._split]["targets"][0]
+            with self.parent_dataset.h5py.File(self.parent_dataset._base_folder / targets_file) as targets_data:
+                targets = []
+                for idx in idxs:
+                    targets.append(int(targets_data["y"][idx, 0, 0, 0]))
+            return torch.tensor(targets)
+
+
+    __slots__ = ['classes', 'targets']
+
+    def __init__(self, root: str, split: str = "train", transform = None, target_transform = None, download: bool = False):
+        super().__init__(root, split, transform, target_transform, download)
+
+        self.classes = ['0 - no tumor tissue', '1 - tumor tissue present']
+        self.targets = self.PCAMTargets(self)
 
 
 class IndexedSubset(Subset):
@@ -213,10 +250,10 @@ class ActiveDataset():
         
         elif source == "pcam":
             # raise NotImplementedError
-            self._full_train_set = PCAM(root=_data_dir, download=False, split='train', 
+            self._full_train_set = PCAMX(root=_data_dir, download=False, split='train', 
                                         transform=ToTensor(),
                                         target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self._full_test_set = PCAM(root=_data_dir, download=False, split='val', 
+            self._full_test_set = PCAMX(root=_data_dir, download=False, split='val', 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         else:
