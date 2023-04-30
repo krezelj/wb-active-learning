@@ -56,17 +56,16 @@ class ActiveLearner():
             epochs=1, 
             early_stopping=False,
             sample_weights=None,
-            verbose=0):
+            verbose=0,
+            early_stopping_patience = 5,
+            early_stopping_counter = 0,
+            early_stopping_threshold = 0.001):
 
         avg_loss_history = []
         avg_vloss_history = []
 
         min_avg_vloss = np.inf
 
-        # TODO parametrise this
-        max_epochs_since_improvement = 10
-        epochs_since_last_improvement = 0
-        threshold = 0.001
 
         # create a temporary directory for model states if it doesn't exist yet
         model_state_dir = './temp_model_states'
@@ -93,13 +92,13 @@ class ActiveLearner():
                 print(f"EPOCH {epoch+1}\n\tTraining: {avg_loss:.3f}\n\tValidation: {avg_vloss:.3f}")
 
             if avg_vloss < min_avg_vloss:
-                epochs_since_last_improvement = 0
+                early_stopping_counter = 0
                 torch.save(self.model.state_dict(), f'{model_state_dir}/best_model.pth')
                 min_avg_vloss = avg_vloss
-            elif avg_vloss > min_avg_vloss + threshold:
-                epochs_since_last_improvement += 1
+            elif avg_vloss > min_avg_vloss + early_stopping_threshold:
+                early_stopping_counter += 1
             if early_stopping:
-                if epochs_since_last_improvement == max_epochs_since_improvement:
+                if early_stopping_counter == early_stopping_patience:
                     if verbose > 0: 
                         print("Stopping Early...")
                     self.model.load_state_dict(torch.load(f'{model_state_dir}/best_model.pth'))
