@@ -58,13 +58,13 @@ class ActiveLearner():
             sample_weights=None,
             verbose=0,
             early_stopping_patience = 5,
-            early_stopping_counter = 0,
             early_stopping_threshold = 0.001):
 
         avg_loss_history = []
         avg_vloss_history = []
 
         min_avg_vloss = np.inf
+        early_stopping_counter = 0
 
 
         # create a temporary directory for model states if it doesn't exist yet
