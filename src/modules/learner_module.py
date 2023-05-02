@@ -167,7 +167,7 @@ class ActiveLearner():
         queries = torch.topk(uncertainties.flatten(), batch_size).indices
         
         # TODO return predictions as well (predictions before applying softmax, i.e. raw predictions)
-        return queries, uncertainties[queries]
+        return queries.to('cpu'), uncertainties[queries]
     
 
     # TODO Move this classes to utilities (?)

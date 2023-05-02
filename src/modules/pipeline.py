@@ -123,7 +123,7 @@ class Pipeline:
         return session, stats_to_return
 
     def _calculate_f1_score(self):
-        outputs = self.learner.predict(self.test_loader)
+        outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_f1_score(
             outputs,
             self.test_loader.dataset.dataset.targets[
@@ -131,7 +131,7 @@ class Pipeline:
         )
 
     def _calculate_accuracy(self):
-        outputs = self.learner.predict(self.test_loader)
+        outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_accuracy(
             outputs,
             self.test_loader.dataset.dataset.targets[
