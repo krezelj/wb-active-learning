@@ -46,7 +46,7 @@ print('To change this path, use the update_data_dir() function '
 
 class PCAMLazyLoader():
 
-    __slots__ = ['cached_data']
+    __slots__ = ['cached_data', 'cached_idx']
 
     # source: https://github.com/basveeling/pcam
     _TRAIN_SIZE = 262_144   # 2^18
@@ -56,26 +56,33 @@ class PCAMLazyLoader():
     def __init__(self):
         self.cached_data = {
             'train': {
-                'images': [None] * self._TRAIN_SIZE,
-                'targets': [None] * self._TRAIN_SIZE
+                'images': torch.zeros(size=(self._TRAIN_SIZE, 3, 32, 32)),
+                'targets': torch.zeros(size=(self._TRAIN_SIZE,2)),
             },
             'test': {
-                'images': [None] * self._TEST_SIZE,
-                'targets': [None] * self._TEST_SIZE,
+                'images': torch.zeros(size=(self._TEST_SIZE, 3, 32, 32)),
+                'targets': torch.zeros(size=(self._TEST_SIZE,2)),
             },
             'val': {
-                'images': [None] * self._VAL_SIZE,
-                'targets': [None] * self._VAL_SIZE,
+                'images': torch.zeros(size=(self._VAL_SIZE, 3, 32, 32)),
+                'targets': torch.zeros(size=(self._VAL_SIZE,2)),
             }
+        }
+        self.cached_idx = {
+            'train': set(),
+            'test': set(),
+            'val': set()
         }
 
     def getitem(self, split, idx):
+        if idx not in self.cached_idx[split]:
+            return None, None
         image = self.cached_data[split]['images'][idx]
         target = self.cached_data[split]['targets'][idx]
         return image, target
 
-
     def putitem(self, split, idx, image, target):
+        self.cached_idx[split].add(idx)
         self.cached_data[split]['images'][idx] = image
         self.cached_data[split]['targets'][idx] = target
 
