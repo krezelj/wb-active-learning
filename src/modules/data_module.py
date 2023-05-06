@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional, Any, Union, Literal
+from typing import Callable, Optional, Any, Tuple, Union, Literal
 
 import torch
 from torchvision.datasets import MNIST, PCAM, FashionMNIST
@@ -78,6 +78,11 @@ class PCAMX(PCAM):
 
         self.classes = ['0 - no tumor tissue', '1 - tumor tissue present']
         self.targets = self.PCAMTargets(self)
+
+    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
+        data, target = super().__getitem__(idx)
+        cropped_data = data[:,32:64,32:64]
+        return cropped_data, target
 
 
 class IndexedSubset(Subset):
