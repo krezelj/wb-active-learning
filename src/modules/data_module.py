@@ -44,6 +44,43 @@ print('To change this path, use the update_data_dir() function '
       'from the data_module')
 
 
+class PCAMLazyLoader():
+
+    __slots__ = ['cached_data']
+
+    # source: https://github.com/basveeling/pcam
+    _TRAIN_SIZE = 262_144   # 2^18
+    _TEST_SIZE = 32_768     # 2^15
+    _VAL_SIZE = 32_768
+
+    def __init__(self):
+        self.cached_data = {
+            'train': {
+                'images': [None] * self._TRAIN_SIZE,
+                'targets': [None] * self._TRAIN_SIZE
+            },
+            'test': {
+                'images': [None] * self._TEST_SIZE,
+                'targets': [None] * self._TEST_SIZE,
+            },
+            'val': {
+                'images': [None] * self._VAL_SIZE,
+                'targets': [None] * self._VAL_SIZE,
+            }
+        }
+
+    def getitem(self, split, idx):
+        image = self.cached_data[split]['images'][idx]
+        target = self.cached_data[split]['targets'][idx]
+        return image, target
+
+
+    def putitem(self, split, idx, image, target):
+        self.cached_data[split]['images'][idx] = image
+        self.cached_data[split]['targets'][idx] = target
+
+print("Initialising Lazy Loader (PCAMLL)")
+PCAMLL = PCAMLazyLoader()
 
 class PCAMX(PCAM):
     """
@@ -80,8 +117,11 @@ class PCAMX(PCAM):
         self.targets = self.PCAMTargets(self)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
-        data, target = super().__getitem__(idx)
-        cropped_data = data[:,32:64,32:64]
+        cropped_data, target = PCAMLL.getitem(self._split, idx)
+        if cropped_data is None:
+            data, target = super().__getitem__(idx)
+            cropped_data = data[:,32:64,32:64]
+            PCAMLL.putitem(self._split, idx, cropped_data, target)
         return cropped_data, target
 
 
