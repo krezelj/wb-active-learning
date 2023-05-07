@@ -81,12 +81,12 @@ class PCAMX(PCAM):
             return torch.tensor(targets)
 
 
-    __slots__ = ['classes', 'targets']
+    __slots__ = ['targets']
+
+    classes = ['0 - no tumor tissue', '1 - tumor tissue present']
 
     def __init__(self, root: str, split: str = "train", transform = None, target_transform = None, download: bool = False):
         super().__init__(root, split, transform, target_transform, download)
-
-        self.classes = ['0 - no tumor tissue', '1 - tumor tissue present']
         self.targets = self.PCAMTargets(self)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
