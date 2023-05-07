@@ -7,6 +7,8 @@ from torchvision.transforms import ToTensor, Lambda
 from torch.utils.data import Subset
 import numpy as np
 
+import src.modules.pcamx as pcamx
+from src.modules.pcamx import PCAMLL
 
 # Note: this variable should not be updated directly.
 # Instead, use the update_data_dir() function to ensure that the stored path
@@ -42,94 +44,6 @@ update_data_dir('./data', silent=True)
 print(f'Default data directory set to {_data_dir}')
 print('To change this path, use the update_data_dir() function '
       'from the data_module')
-
-
-class PCAMLazyLoader():
-
-    __slots__ = ['cached_data', 'cached_idx']
-
-    # source: https://github.com/basveeling/pcam
-    _TRAIN_SIZE = 262_144   # 2^18
-    _TEST_SIZE = 32_768     # 2^15
-    _VAL_SIZE = 32_768
-
-    def __init__(self):
-        self.cached_data = {
-            'train': {
-                'images': torch.zeros(size=(self._TRAIN_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._TRAIN_SIZE,2)),
-            },
-            'test': {
-                'images': torch.zeros(size=(self._TEST_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._TEST_SIZE,2)),
-            },
-            'val': {
-                'images': torch.zeros(size=(self._VAL_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._VAL_SIZE,2)),
-            }
-        }
-        self.cached_idx = {
-            'train': set(),
-            'test': set(),
-            'val': set()
-        }
-
-    def getitem(self, split, idx):
-        if idx not in self.cached_idx[split]:
-            return None, None
-        image = self.cached_data[split]['images'][idx]
-        target = self.cached_data[split]['targets'][idx]
-        return image, target
-
-    def putitem(self, split, idx, image, target):
-        self.cached_idx[split].add(idx)
-        self.cached_data[split]['images'][idx] = image
-        self.cached_data[split]['targets'][idx] = target
-
-print("Initialising Lazy Loader (PCAMLL)")
-PCAMLL = PCAMLazyLoader()
-
-class PCAMX(PCAM):
-    """
-    Extended implementation of the PCAM dataset that includes `classes` and `targets` fields.
-    """
-
-    class PCAMTargets():
-        """
-        Class for dynamic target loading.
-        """
-
-        __slots__ = ['parent_dataset']
-
-        def __init__(self, parent_dataset):
-            self.parent_dataset = parent_dataset
-
-        def __getitem__(self, idxs):
-            idxs = np.reshape(idxs, -1)
-
-            targets_file = self.parent_dataset._FILES[self.parent_dataset._split]["targets"][0]
-            with self.parent_dataset.h5py.File(self.parent_dataset._base_folder / targets_file) as targets_data:
-                targets = []
-                for idx in idxs:
-                    targets.append(int(targets_data["y"][idx, 0, 0, 0]))
-            return torch.tensor(targets)
-
-
-    __slots__ = ['classes', 'targets']
-
-    def __init__(self, root: str, split: str = "train", transform = None, target_transform = None, download: bool = False):
-        super().__init__(root, split, transform, target_transform, download)
-
-        self.classes = ['0 - no tumor tissue', '1 - tumor tissue present']
-        self.targets = self.PCAMTargets(self)
-
-    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
-        cropped_data, target = PCAMLL.getitem(self._split, idx)
-        if cropped_data is None:
-            data, target = super().__getitem__(idx)
-            cropped_data = data[:,32:64,32:64]
-            PCAMLL.putitem(self._split, idx, cropped_data, target)
-        return cropped_data, target
 
 
 class IndexedSubset(Subset):
@@ -302,10 +216,10 @@ class ActiveDataset():
         
         elif source == "pcam":
             # raise NotImplementedError
-            self._full_train_set = PCAMX(root=_data_dir, download=False, split='train', 
+            self._full_train_set = pcamx.PCAMX(root=_data_dir, download=False, split='train', 
                                         transform=ToTensor(),
                                         target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-            self._full_test_set = PCAMX(root=_data_dir, download=False, split='val', 
+            self._full_test_set = pcamx.PCAMX(root=_data_dir, download=False, split='val', 
                                       transform=ToTensor(),
                                       target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         else:
