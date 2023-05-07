@@ -59,35 +59,13 @@ class PCAMX(PCAM):
     """
     Extended implementation of the PCAM dataset that includes `classes` and `targets` fields.
     """
-
-    class PCAMTargets():
-        """
-        Class for dynamic target loading.
-        """
-
-        __slots__ = ['parent_dataset']
-
-        def __init__(self, parent_dataset):
-            self.parent_dataset = parent_dataset
-
-        def __getitem__(self, idxs):
-            idxs = np.reshape(idxs, -1)
-
-            targets_file = self.parent_dataset._FILES[self.parent_dataset._split]["targets"][0]
-            with self.parent_dataset.h5py.File(self.parent_dataset._base_folder / targets_file) as targets_data:
-                targets = []
-                for idx in idxs:
-                    targets.append(int(targets_data["y"][idx, 0, 0, 0]))
-            return torch.tensor(targets)
-
-
     __slots__ = ['targets']
 
     classes = ['0 - no tumor tissue', '1 - tumor tissue present']
 
     def __init__(self, root: str, split: str = "train", transform = None, target_transform = None, download: bool = False):
         super().__init__(root, split, transform, target_transform, download)
-        self.targets = self.PCAMTargets(self)
+        self.targets = PCAMTargets(self)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         cropped_data, target = PCAMLL.getitem(self._split, idx)
@@ -96,3 +74,18 @@ class PCAMX(PCAM):
             cropped_data = data[:,32:64,32:64]
             PCAMLL.putitem(self._split, idx, cropped_data, target)
         return cropped_data, target
+
+
+class PCAMTargets():
+        __slots__ = ['parent_dataset']
+
+        def __init__(self, parent_dataset : PCAMX):
+            self.parent_dataset = parent_dataset
+
+        def __getitem__(self, idxs):
+            idxs = np.reshape(idxs, -1)
+
+            targets = torch.tensor([], dtype=torch.int32)
+            for idx in idxs:
+                targets = torch.cat((targets, torch.tensor([self.parent_dataset[idx][1].argmax()])))
+            return targets
