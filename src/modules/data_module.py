@@ -61,8 +61,17 @@ class ActiveDataset():
 
     # TODO Add ability to manually set test set so that it's consistent across several tests
     
-    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
-                 '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']
+    __slots__ = ['_full_train_set', 
+                 '_full_test_set', 
+                 'labeled_idx', 
+                 'unlabeled_idx', 
+                 'last_labeled_idx', 
+                 'train_subset_idx', 
+                 'test_subset_idx',
+                 '_cached_test_set', 
+                 '_cached_labeled_set', 
+                 '_cached_unlabeled_set', 
+                 '_cached_last_labeled_set']
 
     @property
     def labeled_set(self):
@@ -97,18 +106,18 @@ class ActiveDataset():
     @property
     def test_set(self):
         if self._cached_test_set is None:
-            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
+            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_subset_idx)
         return self._cached_test_set
     
     @property
     def test_targets(self):
-        return self._full_test_set.targets[self.test_idx]
+        return self._full_test_set.targets[self.test_subset_idx]
         
 
     def __init__(self, source, 
                  train_subset_size, 
                  test_subset_size,
-                 test_idx = None,
+                 test_subset_idx = None,
                  ratio_labeled=0.05, 
                  ratio_classes=None, 
                  balanced_split=True) -> None:
@@ -146,23 +155,22 @@ class ActiveDataset():
             if ratio_classes is None:
                 ratio_classes = np.ones(len(self._full_train_set.classes))/len(self._full_train_set.classes)
                                                             
-            train_subset_idx  = self.__get_balanced_train_subset(train_subset_size, 
+            self.train_subset_idx  = self.__get_balanced_train_subset(train_subset_size, 
                                                                  ratio_classes)
-
         else:  
-            train_subset_idx = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
+            self.train_subset_idx = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
 
         n_labeled = int(train_subset_size * ratio_labeled)
-        self.labeled_idx = np.random.choice(train_subset_idx , size=n_labeled, replace=False)
-        self.unlabeled_idx = np.setdiff1d(train_subset_idx , self.labeled_idx)
+        self.labeled_idx = np.random.choice(self.train_subset_idx , size=n_labeled, replace=False)
+        self.unlabeled_idx = np.setdiff1d(self.train_subset_idx , self.labeled_idx)
         self.last_labeled_idx = np.empty(0)
 
-        if test_idx is None:
+        if test_subset_idx is None:
             # get random test set
             test_all_idx = np.arange(test_size)
-            self.test_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
+            self.test_subset_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
         else:
-            self.test_idx = test_idx
+            self.test_subset_idx = test_subset_idx
         
     def __get_balanced_train_subset(self,train_subset_size, ratio_classes):
         classes_idx = {}
