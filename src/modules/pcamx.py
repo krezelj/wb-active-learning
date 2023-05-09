@@ -6,26 +6,35 @@ import numpy as np
 
 class PCAMLazyLoader():
 
-    __slots__ = ['cached_data', 'cached_idx']
+    __slots__ = ['cached_data', 'cached_idx', 'idx_maps']
 
     # source: https://github.com/basveeling/pcam
     _TRAIN_SIZE = 262_144   # 2^18
     _TEST_SIZE = 32_768     # 2^15
     _VAL_SIZE = 32_768
 
-    def __init__(self):
+    def __init__(self, train_idx=None, test_idx=None, val_idx=None):
+        self.reset(train_idx, test_idx, val_idx)
+
+    def reset(self, train_idx=None, test_idx=None, val_idx=None):
+        self.__init_idx_maps(train_idx, test_idx, val_idx)
+
+        train_size = len(self.idx_maps['train'])
+        test_size = len(self.idx_maps['test'])
+        val_size = len(self.idx_maps['val'])
+
         self.cached_data = {
             'train': {
-                'images': torch.zeros(size=(self._TRAIN_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._TRAIN_SIZE,2)),
+                'images': torch.zeros(size=(train_size, 3, 32, 32)),
+                'targets': torch.zeros(size=(train_size,2)),
             },
             'test': {
-                'images': torch.zeros(size=(self._TEST_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._TEST_SIZE,2)),
+                'images': torch.zeros(size=(test_size, 3, 32, 32)),
+                'targets': torch.zeros(size=(test_size,2)),
             },
             'val': {
-                'images': torch.zeros(size=(self._VAL_SIZE, 3, 32, 32)),
-                'targets': torch.zeros(size=(self._VAL_SIZE,2)),
+                'images': torch.zeros(size=(val_size, 3, 32, 32)),
+                'targets': torch.zeros(size=(val_size,2)),
             }
         }
         self.cached_idx = {
@@ -34,6 +43,51 @@ class PCAMLazyLoader():
             'val': set()
         }
 
+    def __init_idx_maps(self, train_idx, test_idx, val_idx):
+        self.idx_maps = {
+            'train': {},
+            'test': {},
+            'val': {}
+        }
+
+        if train_idx is None:
+            train_idx = np.arange(self._TRAIN_SIZE)
+        self.__init_idx_map('train', train_idx)
+
+        if test_idx is None:
+            test_idx = np.arange(self._TEST_SIZE)
+        self.__init_idx_map('test', test_idx)
+
+        if val_idx is None:
+            val_idx = np.arange(self._VAL_SIZE)
+        self.__init_idx_map('val', val_idx)
+
+    def __init_idx_map(self, split, idx):
+        self.idx_maps[split] = {}
+        for i, idx in enumerate(idx):
+            self.idx_maps[split][idx] = i
+
+    def __get_tensor_idx(self, split, idx):
+        try:
+            return self.idx_maps[split][idx]
+        except:
+            raise KeyError(f"Memory for index {idx} is not currently allocated.")
+
+    def append_idx(self, split, idx):
+        idx = np.reshape(idx, -1) # ensure idx is an array
+
+        current_idx = np.array(list(self.idx_maps[split].keys()))
+        i_offset = len(current_idx)
+        new_idx = np.setdiff1d(idx, current_idx)
+
+        new_images = torch.zeros(size=(len(new_idx), 3, 32, 32))
+        new_targets = torch.zeros(size=(len(new_idx),2))
+        self.cached_data[split]['images'] = torch.cat([self.cached_data[split]['images'], new_images])
+        self.cached_data[split]['targets'] = torch.cat([self.cached_data[split]['targets'], new_targets])
+
+        for i, idx in enumerate(new_idx):
+            self.idx_maps[split][idx] = i + i_offset
+
 
     def eagerload():
         # pre load ALL of the data at once so that all trials are fast
@@ -41,19 +95,21 @@ class PCAMLazyLoader():
 
 
     def getitem(self, split, idx):
-        if idx not in self.cached_idx[split]:
+        tensor_idx = self.__get_tensor_idx(split, idx)
+        if tensor_idx not in self.cached_idx[split]:
             return None, None
-        image = self.cached_data[split]['images'][idx]
-        target = self.cached_data[split]['targets'][idx]
+        image = self.cached_data[split]['images'][tensor_idx]
+        target = self.cached_data[split]['targets'][tensor_idx]
         return image, target
 
     def putitem(self, split, idx, image, target):
-        self.cached_idx[split].add(idx)
-        self.cached_data[split]['images'][idx] = image
-        self.cached_data[split]['targets'][idx] = target
+        tensor_idx = self.__get_tensor_idx(split, idx)
+        self.cached_idx[split].add(tensor_idx)
+        self.cached_data[split]['images'][tensor_idx] = image
+        self.cached_data[split]['targets'][tensor_idx] = target
 
 print("Initialising Lazy Loader (PCAMLL)")
-PCAMLL = PCAMLazyLoader()
+PCAMLL = PCAMLazyLoader(train_idx=[], test_idx=[], val_idx=[])
 
 class PCAMX(PCAM):
     """
