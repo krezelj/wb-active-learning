@@ -4,6 +4,10 @@ import torch
 from torchvision.datasets import PCAM
 import numpy as np
 
+CROP_MIN = 0
+CROP_MAX = 96
+CROPPED_SIZE = CROP_MAX - CROP_MIN
+
 class PCAMLazyLoader():
 
     __slots__ = ['cached_data', 'cached_idx', 'idx_maps']
@@ -25,15 +29,15 @@ class PCAMLazyLoader():
 
         self.cached_data = {
             'train': {
-                'images': torch.zeros(size=(train_size, 3, 32, 32)),
+                'images': torch.zeros(size=(train_size, 3, CROPPED_SIZE, CROPPED_SIZE)),
                 'targets': torch.zeros(size=(train_size,2)),
             },
             'test': {
-                'images': torch.zeros(size=(test_size, 3, 32, 32)),
+                'images': torch.zeros(size=(test_size, 3, CROPPED_SIZE, CROPPED_SIZE)),
                 'targets': torch.zeros(size=(test_size,2)),
             },
             'val': {
-                'images': torch.zeros(size=(val_size, 3, 32, 32)),
+                'images': torch.zeros(size=(val_size, 3, CROPPED_SIZE, CROPPED_SIZE)),
                 'targets': torch.zeros(size=(val_size,2)),
             }
         }
@@ -80,7 +84,7 @@ class PCAMLazyLoader():
         i_offset = len(current_idx)
         new_idx = np.setdiff1d(idx, current_idx)
 
-        new_images = torch.zeros(size=(len(new_idx), 3, 32, 32))
+        new_images = torch.zeros(size=(len(new_idx), 3, CROPPED_SIZE, CROPPED_SIZE))
         new_targets = torch.zeros(size=(len(new_idx),2))
         self.cached_data[split]['images'] = torch.cat([self.cached_data[split]['images'], new_images])
         self.cached_data[split]['targets'] = torch.cat([self.cached_data[split]['targets'], new_targets])
@@ -89,9 +93,13 @@ class PCAMLazyLoader():
             self.idx_maps[split][idx] = i + i_offset
 
 
-    def eagerload():
-        # pre load ALL of the data at once so that all trials are fast
-        raise NotImplementedError
+    def set_full_data(self, split : str, full_images : torch.Tensor, full_targets : torch.Tensor):
+        # IMPORTANT! Assumes that provided tensors contains all of the data for the given split
+        idx = np.arange(len(full_targets))
+        self.__init_idx_map(split, idx)
+        self.cached_data[split]['images'] = full_images
+        self.cached_data[split]['targets'] = full_targets
+        self.cached_idx[split] = set(idx)
 
 
     def getitem(self, split, idx):
@@ -127,7 +135,7 @@ class PCAMX(PCAM):
         cropped_data, target = PCAMLL.getitem(self._split, idx)
         if cropped_data is None:
             data, target = super().__getitem__(idx)
-            cropped_data = data[:,32:64,32:64]
+            cropped_data = data[:,CROP_MIN:CROP_MAX,CROP_MIN:CROP_MAX]
             PCAMLL.putitem(self._split, idx, cropped_data, target)
         return cropped_data, target
 
