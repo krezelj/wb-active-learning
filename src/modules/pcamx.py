@@ -132,7 +132,7 @@ class PCAMX(PCAM):
         super().__init__(root, split, transform, target_transform, download)
         path_to_targets = os.path.join(root, 'pcam', f'pcamx_split_{split}_y.pt')
         if os.path.isfile(path_to_targets):
-            self.targets = torch.load(path_to_targets).argmax(axis=1)
+            self.targets = torch.load(path_to_targets)
         else:
             print(f"WARNING! Could not find target tensor ({path_to_targets}).\n\
                   You will not be able to use balanced split on this set ({split} split).")
