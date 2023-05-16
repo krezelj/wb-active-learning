@@ -3,6 +3,7 @@ from typing import Callable, Optional, Any, Tuple, Union, Literal
 import torch
 from torchvision.datasets import PCAM
 import numpy as np
+import os
 
 CROP_MIN = 0
 CROP_MAX = 96
@@ -125,11 +126,17 @@ class PCAMX(PCAM):
     """
     __slots__ = ['targets']
 
-    classes = ['0 - no tumor tissue', '1 - tumor tissue present']
+    classes = [0, 1]
 
     def __init__(self, root: str, split: str = "train", transform = None, target_transform = None, download: bool = False):
         super().__init__(root, split, transform, target_transform, download)
-        self.targets = PCAMTargets(self)
+        path_to_targets = os.path.join(root, 'pcam', f'pcamx_split_{split}_y.pt')
+        if os.path.isfile(path_to_targets):
+            self.targets = torch.load(path_to_targets).argmax(axis=1)
+        else:
+            print(f"WARNING! Could not find target tensor ({path_to_targets}).\n\
+                  You will not be able to use balanced split on this set ({split} split).")
+            self.targets = PCAMTargets(self)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         cropped_data, target = PCAMLL.getitem(self._split, idx)
