@@ -12,12 +12,56 @@ import src.modules.evaluation_module as em
 
 
 class Pipeline:
-     
+    """
+    A class used to initialize pipeline.
+
+    ...
+    Attributes
+    ----------
+    dataset: data_module.ActiveDataset
+        A data set used to evaluation.
+    learner: learner_module.ActiveLearner
+        Type of method used to evaluate.
+    settings: PipelineSettings
+        Settings of pipeline.
+    optimiser: torch.optim
+        Type of used optimiser.
+    loss_function: torch.nn.functional
+        Type of loss function.
+    train_loader: torch.utils.data.DataLoader
+        Data set used for training.
+    test_loader: torch.utils.data.DataLoader
+        Data set used for testing.
+
+    Methods
+    -------
+    run(verbose: int = 0, calculate_accuracy=False, calculate_f1_score=False)
+         Runs the pipeline. Returns a session object and dict of stats such as loss history,
+         accuracy and f1 score.
+    """
+
+
     __slots__ = ['dataset', 'learner', 'settings', 'optimiser', 'loss_function',
                  'train_loader', 'test_loader']
     
     def __init__(self, dataset: dm.ActiveDataset, learner: lm.ActiveLearner,
                  optimiser, loss_function, settings: Union[dict, PipelineSettings]):
+        """
+
+        Parameters
+        ----------
+        dataset: data_module.ActiveDataset
+            A data set used to evaluation.
+        learner: learner_module.ActiveLearner
+            Type of method used to evaluate.
+        optimiser: torch.optim
+            Type of used optimiser.
+        loss_function: torch.nn.functional
+            Type of loss function.
+        settings: PipelineSettings
+            Settings of pipeline.
+        """
+
         self.dataset = dataset
         self.learner = learner
         self.optimiser = optimiser
@@ -38,13 +82,15 @@ class Pipeline:
         loss history on train & test and accuracy & f1 score history.
 
         Arguments:
-            `verbose`:
+            `verbose`: int, optional
                 0 - silent
                 1 - display iteration count
                 2 - display max uncertainties in every iteration
-            `calculate_accuracy`: Whether or not to calculate predictions
+            `calculate_accuracy`: bool, optional
+                Whether or not to calculate predictions
                 accuracy after every iteration.
-            `calculate_f1_score`: Whether or not to calculate predictions
+            `calculate_f1_score`: bool, optional
+                Whether or not to calculate predictions
                 F1 score after every iteration.
 
         Pseudocode:
@@ -123,6 +169,7 @@ class Pipeline:
         return session, stats_to_return
 
     def _calculate_f1_score(self):
+        # Method used for calculating f1 score
         outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_f1_score(
             outputs,
@@ -131,6 +178,7 @@ class Pipeline:
         )
 
     def _calculate_accuracy(self):
+        # Method used for calculating accuracy
         outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_accuracy(
             outputs,
