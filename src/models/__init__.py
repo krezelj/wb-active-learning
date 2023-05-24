@@ -3,5 +3,5 @@ from .pcam_classifier import PCAMClassifier
 
 __all__ = [
     'MNISTClassifier',
-    'PCAMClassifier'
+    'PCAMClassifier',
 ]

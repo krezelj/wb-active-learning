@@ -12,12 +12,56 @@ import src.modules.evaluation_module as em
 
 
 class Pipeline:
-     
+    """
+    A class used to initialize pipeline.
+
+    ...
+    Attributes
+    ----------
+    dataset: data_module.ActiveDataset
+        A data set used to evaluation.
+    learner: learner_module.ActiveLearner
+        Type of method used to evaluate.
+    settings: PipelineSettings
+        Settings of pipeline.
+    optimiser: torch.optim
+        Type of used optimiser.
+    loss_function: torch.nn.functional
+        Type of loss function.
+    train_loader: torch.utils.data.DataLoader
+        Data set used for training.
+    test_loader: torch.utils.data.DataLoader
+        Data set used for testing.
+
+    Methods
+    -------
+    run(verbose: int = 0, calculate_accuracy=False, calculate_f1_score=False)
+         Runs the pipeline. Returns a session object and dict of stats such as loss history,
+         accuracy and f1 score.
+    """
+
+
     __slots__ = ['dataset', 'learner', 'settings', 'optimiser', 'loss_function',
                  'train_loader', 'test_loader']
     
     def __init__(self, dataset: dm.ActiveDataset, learner: lm.ActiveLearner,
                  optimiser, loss_function, settings: Union[dict, PipelineSettings]):
+        """
+
+        Parameters
+        ----------
+        dataset: data_module.ActiveDataset
+            A data set used to evaluation.
+        learner: learner_module.ActiveLearner
+            Type of method used to evaluate.
+        optimiser: torch.optim
+            Type of used optimiser.
+        loss_function: torch.nn.functional
+            Type of loss function.
+        settings: PipelineSettings
+            Settings of pipeline.
+        """
+
         self.dataset = dataset
         self.learner = learner
         self.optimiser = optimiser
@@ -38,13 +82,17 @@ class Pipeline:
         loss history on train & test and accuracy & f1 score history.
 
         Arguments:
-            `verbose`:
+            `verbose`: int, optional
+                Which information should be displayed
+                during session. (default=0)
                 0 - silent
                 1 - display iteration count
                 2 - display max uncertainties in every iteration
-            `calculate_accuracy`: Whether or not to calculate predictions
+            `calculate_accuracy`: bool, optional
+                Whether or not to calculate predictions
                 accuracy after every iteration.
-            `calculate_f1_score`: Whether or not to calculate predictions
+            `calculate_f1_score`: bool, optional
+                Whether or not to calculate predictions
                 F1 score after every iteration.
 
         Pseudocode:
@@ -123,7 +171,8 @@ class Pipeline:
         return session, stats_to_return
 
     def _calculate_f1_score(self):
-        outputs = self.learner.predict(self.test_loader)
+        # Method used for calculating f1 score
+        outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_f1_score(
             outputs,
             self.test_loader.dataset.dataset.targets[
@@ -131,7 +180,8 @@ class Pipeline:
         )
 
     def _calculate_accuracy(self):
-        outputs = self.learner.predict(self.test_loader)
+        # Method used for calculating accuracy
+        outputs = self.learner.predict(self.test_loader).to('cpu')
         return multiclass_accuracy(
             outputs,
             self.test_loader.dataset.dataset.targets[
@@ -140,6 +190,36 @@ class Pipeline:
 
 class PipelineSettings:
 
+    """
+    A class used to set pipeline settings.
+    ...
+    Attributes
+    ----------
+    n_queries: int
+        Number of queries used in Active learning evaluation.
+    init_epochs: int
+        Number of initial epochs used in Active learning evaluation.
+    epochs_per_query: int
+        Number of epochs used for every query.
+    query_batch_size: int
+        Number of batches asked in every query.
+    query_criterion: str
+        Type of criterion used for selecting batches in query.
+
+    Methods
+    -------
+    @staticmethod
+    from_dict(settings_dict: dict[str, Any])
+        Used for generating PiplineSettings from a dict.
+    @staticmethod
+    from_json(path_to_json: os.PathLike)
+        Used for generating PiplineSettings from a JSON file.
+    to_json()
+        Used to export settings to a JSON file.
+    to_dict()
+        Used to export settings to a dict.
+    """
+
     __slots__ = ['n_queries', 'init_epochs', 'epochs_per_query', 'query_batch_size',
                  'query_criterion']
 
@@ -147,7 +227,21 @@ class PipelineSettings:
                  epochs_per_query: int, query_batch_size: int = 100,
                  query_criterion: str = 'entropy'):
         """
-        criterion: 'entropy' | 'margin' | 'confidence' | 'random'
+
+        Parameters
+        ----------
+        n_queries: int
+            Number of queries used in Active learning evaluation.
+        init_epochs: int
+            Number of initial epochs used in Active learning evaluation.
+        epochs_per_query: int
+            Number of epochs used for every query.
+        query_batch_size: int, optional
+            Number of batches asked in every query. (default = 100)
+        query_criterion: str, optional
+            criterion: 'entropy' | 'margin' | 'confidence' | 'random'
+            Type of criterion used for selecting batches in query. (default = 'entropy')
+
         """
         self.n_queries = n_queries
         self.init_epochs = init_epochs
@@ -160,6 +254,11 @@ class PipelineSettings:
         """
         A named constructor which generates a PipelineSettings from a dict.
         Dict should be in a format like the one returned from `PipelineSettings.to_dict()` method.
+        ...
+        Parameters
+        ----------
+        settings_dict: dict
+            Dictionary containing pipline settings.
         """
         try:
             settings_obj = PipelineSettings(
@@ -190,6 +289,11 @@ class PipelineSettings:
         """
         A named constructor which generates a PipelineSettings from a JSON file.
         A file should be in a format like the one generated by `PipelineSettings.to_json()` method.
+        ...
+        Parameters
+        ----------
+        path_to_json: os.PathLike
+            Path to a JSON file from which we get settings.
         """
         with open(path_to_json, 'r') as file:
             settings_dict = json.load(file)
@@ -198,6 +302,15 @@ class PipelineSettings:
     def to_json(self, path: os.PathLike, filename: str = None):
         """
         Exports settings to a JSON file
+        ...
+        Parameters
+        ----------
+        path: os.PathLike
+            Path where we want to save a JSON file.
+        filename: str, optional
+            Name of file we want to save. (default = None)
+            If None filename is 'pipeline_settings.json'.
+
         """
         os.makedirs(path, exist_ok=True)
         # generic filename

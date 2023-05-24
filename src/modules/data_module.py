@@ -1,4 +1,5 @@
 import os
+from typing import Callable, Optional, Any, Tuple, Union, Literal
 
 import torch
 from torchvision.datasets import MNIST, PCAM, FashionMNIST
@@ -6,6 +7,8 @@ from torchvision.transforms import ToTensor, Lambda
 from torch.utils.data import Subset
 import numpy as np
 
+import src.modules.pcamx as pcamx
+from src.modules.pcamx import PCAMLL
 
 # Note: this variable should not be updated directly.
 # Instead, use the update_data_dir() function to ensure that the stored path
@@ -58,8 +61,17 @@ class ActiveDataset():
 
     # TODO Add ability to manually set test set so that it's consistent across several tests
     
-    __slots__ = ['_full_train_set', '_full_test_set', 'labeled_idx', 'unlabeled_idx', 'last_labeled_idx', 'test_idx',
-                 '_cached_test_set', '_cached_labeled_set', '_cached_unlabeled_set', '_cached_last_labeled_set']
+    __slots__ = ['_full_train_set', 
+                 '_full_test_set', 
+                 'labeled_idx', 
+                 'unlabeled_idx', 
+                 'last_labeled_idx', 
+                 'train_subset_idx', 
+                 'test_subset_idx',
+                 '_cached_test_set', 
+                 '_cached_labeled_set', 
+                 '_cached_unlabeled_set', 
+                 '_cached_last_labeled_set']
 
     @property
     def labeled_set(self):
@@ -94,18 +106,18 @@ class ActiveDataset():
     @property
     def test_set(self):
         if self._cached_test_set is None:
-            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_idx)
+            self._cached_test_set = IndexedSubset(self._full_test_set, self.test_subset_idx)
         return self._cached_test_set
     
     @property
     def test_targets(self):
-        return self._full_test_set.targets[self.test_idx]
+        return self._full_test_set.targets[self.test_subset_idx]
         
 
     def __init__(self, source, 
                  train_subset_size, 
                  test_subset_size,
-                 test_idx = None,
+                 test_subset_idx = None,
                  ratio_labeled=0.05, 
                  ratio_classes=None, 
                  balanced_split=True) -> None:
@@ -143,23 +155,22 @@ class ActiveDataset():
             if ratio_classes is None:
                 ratio_classes = np.ones(len(self._full_train_set.classes))/len(self._full_train_set.classes)
                                                             
-            train_subset_idx  = self.__get_balanced_train_subset(train_subset_size, 
+            self.train_subset_idx  = self.__get_balanced_train_subset(train_subset_size, 
                                                                  ratio_classes)
-
         else:  
-            train_subset_idx = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
+            self.train_subset_idx = np.random.choice(train_all_idx, size=train_subset_size, replace=False)
 
         n_labeled = int(train_subset_size * ratio_labeled)
-        self.labeled_idx = np.random.choice(train_subset_idx , size=n_labeled, replace=False)
-        self.unlabeled_idx = np.setdiff1d(train_subset_idx , self.labeled_idx)
+        self.labeled_idx = np.random.choice(self.train_subset_idx , size=n_labeled, replace=False)
+        self.unlabeled_idx = np.setdiff1d(self.train_subset_idx , self.labeled_idx)
         self.last_labeled_idx = np.empty(0)
 
-        if test_idx is None:
+        if test_subset_idx is None:
             # get random test set
             test_all_idx = np.arange(test_size)
-            self.test_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
+            self.test_subset_idx = np.random.choice(test_all_idx, size=test_subset_size, replace=False)
         else:
-            self.test_idx = test_idx
+            self.test_subset_idx = test_subset_idx
         
     def __get_balanced_train_subset(self,train_subset_size, ratio_classes):
         classes_idx = {}
@@ -212,9 +223,13 @@ class ActiveDataset():
                                                target_transform=Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         
         elif source == "pcam":
-            raise NotImplementedError
-            # self.train_dataset = PCAM(root="./data", download=False, train=True, transform=ToTensor())
-            # self.test_dataset = PCAM(root="./data", download=False, train=False, transform=ToTensor())
+            # raise NotImplementedError
+            self._full_train_set = pcamx.PCAMX(root=_data_dir, download=False, split='train', 
+                                        transform=ToTensor(),
+                                        target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
+            self._full_test_set = pcamx.PCAMX(root=_data_dir, download=False, split='val', 
+                                      transform=ToTensor(),
+                                      target_transform=Lambda(lambda y: torch.zeros(2, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
         else:
             raise ValueError("Invalid source name")
 
@@ -260,9 +275,15 @@ def download_data():
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:
-        MNIST(root=_data_dir, download = True)
-        PCAM(root=_data_dir, download=True)
-        FashionMNIST(root=_data_dir, download=True)
+        MNIST(root=_data_dir, download = True, train=False)
+        MNIST(root=_data_dir, download = True, train=True)
+
+        PCAM(root=_data_dir, download = True, split='train')
+        PCAM(root=_data_dir, download = True, split='val')
+        PCAM(root=_data_dir, download = True, split='test')
+
+        FashionMNIST(root=_data_dir, download=True, train=False)
+        FashionMNIST(root=_data_dir, download=True, train=True)
     else:
         print("Aborted.")
 
