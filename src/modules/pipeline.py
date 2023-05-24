@@ -45,7 +45,7 @@ class Pipeline:
                  'train_loader', 'test_loader']
     
     def __init__(self, dataset: dm.ActiveDataset, learner: lm.ActiveLearner,
-                 optimiser, loss_function, settings: Union[dict, PipelineSettings]):
+                 optimiser, loss_function, settings: Union[dict, PipelineSettings]) -> None:
         """
 
         Parameters
@@ -225,7 +225,7 @@ class PipelineSettings:
 
     def __init__(self, n_queries: int, init_epochs: int,
                  epochs_per_query: int, query_batch_size: int = 100,
-                 query_criterion: str = 'entropy'):
+                 query_criterion: str = 'entropy') -> None:
         """
 
         Parameters
@@ -299,7 +299,7 @@ class PipelineSettings:
             settings_dict = json.load(file)
         return PipelineSettings.from_dict(settings_dict)
 
-    def to_json(self, path: os.PathLike, filename: str = None):
+    def to_json(self, path: os.PathLike, filename: str = None) -> None:
         """
         Exports settings to a JSON file
         ...
