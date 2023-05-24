@@ -2,10 +2,40 @@ import numpy as np
 
 
 class Session():
+    """
+
+    A class representing an Active Learning session.
+    ...
+    Attributes
+    ----------
+    dataset : data_module.ActiveDataset
+        The dataset used in the session.
+    learner : learner_module.ActiveLearner
+        The learner model used in the session.
+    initial_unlabeled_idx : numpy.ndarray
+        The initial indices of unlabeled examples in the dataset.
+    all_queried_idx : numpy.ndarray
+        The indices of examples that have been queried for labeling.
+
+    Methods
+    -------
+    update()
+        Updates the `all_queried_idx` attribute
+        by appending the indices of the last labeled examples.
+    """
     
     __slots__ = ['dataset', 'learner', 'initial_unlabeled_idx', 'all_queried_idx']
 
     def __init__(self, dataset, learner) -> None:
+        """
+        Parameters
+        ----------
+        dataset : data_module.ActiveDataset
+            The dataset used in the session.
+        learner : learner_module.ActiveLearner
+            The learner model used in the session.
+        """
+
         self.dataset = dataset
         self.learner = learner
 
@@ -13,6 +43,10 @@ class Session():
         self.all_queried_idx = np.empty(0, dtype=np.int32)
 
     def update(self):
+        """
+        Updates the `all_queried_idx` attribute
+        by appending the indices of the last labeled examples.
+        """
         self.all_queried_idx = np.concatenate([self.all_queried_idx, self.dataset.last_labeled_idx])
 
 
