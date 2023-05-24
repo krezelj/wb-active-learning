@@ -1,3 +1,4 @@
+
 import torch
 import h5py
 import pathlib
@@ -14,3 +15,4 @@ with h5py.File(base_folder / targets_file) as targets_data:
     for idx in range(TRAIN_SIZE):
         targets[idx] = int(targets_data["y"][idx, 0, 0, 0])
     torch.save(targets, base_folder / "pcamx_split_train_y.pt")
+print("Finished")
