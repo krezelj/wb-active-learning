@@ -17,14 +17,16 @@ _data_dir = ''
 # (default value for __data_dir is assigned below update_data_dir() function declaration)
 
 
-def update_data_dir(path, silent=False):
+def update_data_dir(path, silent=False) -> None:
     """
     Updates the path to a directory where datasets are stored and downloaded to
 
-    Arguments:
-        `path` (str|os.PathLike): path to a new data directory\n
-    Parameters:
-        `silent` (bool): whether to notify about the new path
+    Parameters
+    ----------
+    path: str|os.PathLike
+        Path to a new data directory
+    silent: bool 
+        Whether to notify about the new path. (default = False)
     """
     # expanduser: to process paths that begin with ~ on unix
     # expandvars: to handle environmental vars in a path such as $HOME
@@ -47,17 +49,102 @@ print('To change this path, use the update_data_dir() function '
 
 
 class IndexedSubset(Subset):
+    """
+    Class that extends the functionality of the Subset class.
+    ...
+    Attributes
+    ----------
+    dataset: Dataset
+        The original dataset.
+    indices: sequence 
+        Indices to extract from the original dataset.
+    """
 
     def __init__(self, dataset, indices) -> None:
+        """
+        Parameters
+        ----------
+        dataset: Dataset 
+            The original dataset.
+        indices: sequence 
+            Indices to extract from the original dataset.
+        """
+
         super().__init__(dataset, indices)
 
     def __getitem__(self, idx):
+        """
+        Attributes
+        ----------
+        idx: int
+            Index of the item to retrieve.
+
+        Returns:
+            tuple: Tuple containing the data, target, and index.
+
+        """
+
         data, target = super().__getitem__(idx)
         return data, target, idx
 
 
 
 class ActiveDataset():
+    """
+    Class representing an active learning dataset.
+    ...
+    Parameters
+    ----------
+    _full_train_set: Datase
+        The full training dataset.
+    _full_test_set: Satase
+        The full test dataset.
+    labeled_idx: numpy.ndarray
+        Indices of labeled samples in the training subset.
+    unlabeled_idx: numpy.ndarray
+        Indices of unlabeled samples in the training subset.
+    last_labeled_idx: numpy.ndarray
+        Indices of the last labeled samples.
+    train_subset_idx: numpy.ndarray
+        Indices of the training subset.
+    test_subset_idx: numpy.ndarray
+        Indices of the test subset.
+    _cached_test_set: IndexedSubset
+        Cached IndexedSubset object for the test subset.
+    _cached_labeled_set: IndexedSubset
+        Cached IndexedSubset object for the labeled samples.
+    _cached_unlabeled_set: IndexedSubset
+        Cached IndexedSubset object for the unlabeled samples.
+    _cached_last_labeled_set: IndexedSubset
+        Cached IndexedSubset object for the last labeled samples.
+
+    Methods
+    -------
+    labeled_set()
+        Property returning the labeled samples subset.
+    labeled_targets()
+        Property returning the targets of the labeled samples.
+    unlabeled_set()
+        Property returning the unlabeled samples subset.
+    unlabeled_targets()
+        Property returning the targets of the unlabeled samples.
+    last_labeled_set()
+        Property returning the subset of the last labeled samples.
+    last_labeled_targets()
+        Property returning the targets of the last labeled samples.
+    test_set()
+        Property returning the test subset.
+    test_targets()
+        Property returning the targets of the test samples.
+    __get_balanced_train_subset(train_subset_size, ratio_classes)
+        Generates a balanced train subset based on the specified ratio of classes.
+    __get_from_source(source)
+        Retrieves the datasets from the specified source.
+    get_label_by_idx(indices, move_sample=True)
+        Gets the label of an unlabeled sample.
+    get_bootstrap_set(size=None, weights=None)
+        Generates a bootstrap set from the labeled samples.
+    """
 
     # TODO Add ability to manually set test set so that it's consistent across several tests
     
@@ -75,42 +162,106 @@ class ActiveDataset():
 
     @property
     def labeled_set(self):
+        """
+        Property returning the labeled samples subset.
+
+        Returns
+        -------
+            IndexedSubset: Subset containing the labeled samples.
+        """
+
         if self._cached_labeled_set is None:
             self._cached_labeled_set = IndexedSubset(self._full_train_set, self.labeled_idx)
         return self._cached_labeled_set
     
     @property 
     def labeled_targets(self):
+        """
+        Property returning the targets of the labeled samples.
+
+        Returns
+        -------
+            torch.Tensor: Tensor containing the targets of the labeled samples.
+        """
+
         return self._full_train_set.targets[self.labeled_idx]
     
     @property
     def unlabeled_set(self):
+        """
+        Property returning the unlabeled samples subset.
+
+        Returns
+        -------
+            IndexedSubset: Subset containing the unlabeled samples.
+        """
+
         if self._cached_unlabeled_set is None:
             self._cached_unlabeled_set = IndexedSubset(self._full_train_set, self.unlabeled_idx)
         return self._cached_unlabeled_set
     
     @property
     def unlabeled_targets(self):
+        """
+        Property returning the targets of the unlabeled samples.
+
+        Returns
+        -------
+            torch.Tensor: Tensor containing the targets of the unlabeled samples.
+        """
+
         return self._full_train_set.targets[self.unlabeled_idx]
 
     @property
     def last_labeled_set(self):
+        """
+        Property returning the subset of the last labeled samples.
+
+        Returns
+        -------
+            IndexedSubset: Subset containing the last labeled samples.
+        """
+
         if self._cached_last_labeled_set is None:
             self._cached_last_labeled_set = IndexedSubset(self._full_train_set, self.last_labeled_idx)
         return self._cached_last_labeled_set
     
     @property
     def last_labeled_targets(self):
+        """
+        Property returning the targets of the last labeled samples.
+
+        Returns
+        -------
+            torch.Tensor: Tensor containing the targets of the last labeled samples.
+        """
+
         return self._full_train_set.targets[self.last_labeled_idx]
     
     @property
     def test_set(self):
+        """
+        Property returning the test subset.
+
+        Returns
+        -------
+            IndexedSubset: Subset containing the test samples.
+        """
+
         if self._cached_test_set is None:
             self._cached_test_set = IndexedSubset(self._full_test_set, self.test_subset_idx)
         return self._cached_test_set
     
     @property
     def test_targets(self):
+        """
+        Property returning the targets of the test samples.
+
+        Returns
+        -------
+            torch.Tensor: Tensor containing the targets of the test samples.
+        """
+
         return self._full_test_set.targets[self.test_subset_idx]
         
 
@@ -122,18 +273,22 @@ class ActiveDataset():
                  ratio_classes=None, 
                  balanced_split=True) -> None:
         """
-        Initialises the active dataset object
-
-        Arguments:
-            `source` ("mnist" | "fashion" | "pcam"): name of the source dataset.
-            `train_subset_size` (int|float): size of the train subset. If the argument is of type `float` it's treated as a ratio.
-            `test_subset_size` (int|float): size of the test subset. If the argument is of type `float` it's treated as a ratio.
-        
-        Parameters:
-            `test_idx` (numpy.array): manually sets the array of test indices. Overrules `test_subset_size` argument.
-            `ratio_labeled` (float): ratio of the train subset that is initially labeled.
-            `ratio_classes` (float): ratio of the classes in the train subset. If None equal unform distribution is generated.
-            `balanced_split` (boolean): decides whether to use `ratio_classes` to balance the split between classes.
+        Parameters
+        ----------
+        source: str ("mnist" | "fashion" | "pcam")
+            Name of the source dataset.
+        train_subset_size: int|float 
+            Size of the train subset. If the argument is of type `float` it's treated as a ratio.
+        test_subset_size: int|float 
+            Size of the test subset. If the argument is of type `float` it's treated as a ratio.
+        test_subset_idx: numpy.array, optional 
+            Manually sets the array of test indices. Overrules `test_subset_size` argument. (default = None)
+        ratio_labeled: float, optional
+            Ratio of the train subset that is initially labeled. (default = 0.05)
+        ratio_classes: float 
+            Ratio of the classes in the train subset. If None equal unform distribution is generated. (default = None)
+        balanced_split: boolean 
+            Decides whether to use `ratio_classes` to balance the split between classes. (defaul = True)
         """
 
         self.__get_from_source(source)
@@ -173,6 +328,20 @@ class ActiveDataset():
             self.test_subset_idx = test_subset_idx
         
     def __get_balanced_train_subset(self,train_subset_size, ratio_classes):
+        """
+        Generates a balanced train subset based on the specified ratio of classes.
+
+        Parameters
+        ----------
+        train_subset_size: int 
+            Size of the train subset.
+            ratio_classes: float 
+            Ratio of the classes in the train subset.
+
+        Returns
+        -------
+            numpy.array: Indices of the balanced train subset.
+        """
         classes_idx = {}
         for target in range(len(self._full_train_set.classes)):
             idx = np.where(self._full_train_set.targets == target)[0]
@@ -207,6 +376,18 @@ class ActiveDataset():
         return train_subset_idx 
     
     def __get_from_source(self, source):
+        """
+        Retrieves the datasets from the specified source.
+
+        Parameters
+        ----------
+        source: str
+            Name of the source dataset.
+
+        Raises
+        ------
+            ValueError: If source name is invalid.
+        """
         if source == "mnist":
             self._full_train_set = MNIST(root=_data_dir, download=False, train=True,
                                          transform=ToTensor(),
@@ -237,10 +418,16 @@ class ActiveDataset():
         """
         Gets the label of an unlabeled sample.
 
-        Arguments:
-            `idx` (int): index of the sample in the **unlabeled** subset\n
-        Parameters:
-            `move_sample` (bool): decided whether to move the sample to the labeled
+        Parameters
+        ----------
+        indices: int or list or numpy.array
+            Index or indices of the samples in the unlabeled subset.
+        move_sample: bool, optional
+            Determines whether to move the sample to the labeled subset. (defaul = True)
+
+        Returns
+        -------
+            list: List of labels of the specified unlabeled samples.
         """
 
         self.last_labeled_idx = self.unlabeled_idx[indices]
@@ -258,6 +445,21 @@ class ActiveDataset():
         return [self._full_train_set.targets[global_idx] for global_idx in self.last_labeled_idx]
         
     def get_bootstrap_set(self, size=None, weights=None):
+        """
+        Generates a bootstrap set from the labeled samples.
+
+        Parameters
+        ----------
+        size: int, optional
+            Size of the bootstrap set. (defaul = None)
+        weights: numpy.array or torch.Tensor
+            Weights for sampling the labeled samples. (defaul = None)
+
+        Returns
+        -------
+            IndexedSubset: Bootstrap set.
+        """
+
         if size is None:
             size = len(self.labeled_idx)
         if weights is None:
@@ -272,6 +474,19 @@ class ActiveDataset():
 
 
 def download_data():
+    """
+    Downloads necessary datasets of considerable size.
+
+    This function prompts the user for confirmation before downloading the datasets. It downloads the following datasets:
+    - MNIST: Train and test sets.
+    - PCAM: Train, validation, and test sets.
+    - FashionMNIST: Train and test sets.
+
+    Note
+    ----
+        This function requires an active internet connection to download the datasets.
+    """
+
     print("WARNING! You are about to download necessary datasets of considerable size.")
     answer = input("Proceed? [y/n]")
     if answer.lower() in ['y', 'yes']:

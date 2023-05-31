@@ -14,7 +14,6 @@ import src.modules.evaluation_module as em
 class Pipeline:
     """
     A class used to initialize pipeline.
-
     ...
     Attributes
     ----------

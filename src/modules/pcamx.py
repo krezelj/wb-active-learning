@@ -143,7 +143,8 @@ class PCAMLazyLoader():
         """
         Initializes an index map for a specific split with the given indices.
 
-        Args:
+        Parameters
+        ----------
         split: str 
             Split name ('train', 'test', 'val').
         idx: numpy.ndarray 
@@ -165,10 +166,12 @@ class PCAMLazyLoader():
         idx: int
             Index within the split.
 
-        Returns:
+        Returns
+        -------
             int: Tensor index.
         
-        Raises:
+        Raises
+        ------
             KeyError: If the memory for the given index is not currently allocated.
         """
 
@@ -238,7 +241,8 @@ class PCAMLazyLoader():
         idx: int 
             Index within the split.
 
-        Returns:
+        Returns
+        -------
             tuple: Tuple containing the image and target tensors.
         """
 
@@ -322,10 +326,12 @@ class PCAMX(PCAM):
         idx: int
             Index of the item to retrieve.
 
-        Returns:
+        Returns
+        -------
             tuple: Tuple containing the cropped image data and the target.
 
-        Notes:
+        Notes
+        -----
             - If the cropped_data is not already cached, it retrieves the original data and crops it.
             - Caches the cropped_data and target in the PCAMLazyLoader instance for faster access.
 
@@ -369,7 +375,8 @@ class PCAMTargets():
         idxs: int or array-like 
             Indices of the target labels to retrieve.
 
-        Returns:
+        Returns
+        -------
             torch.Tensor: Tensor containing the target labels corresponding to the specified indices.
 
         """
