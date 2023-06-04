@@ -14,7 +14,6 @@ import src.modules.evaluation_module as em
 class Pipeline:
     """
     A class used to initialize pipeline.
-
     ...
     Attributes
     ----------
@@ -45,7 +44,7 @@ class Pipeline:
                  'train_loader', 'test_loader']
     
     def __init__(self, dataset: dm.ActiveDataset, learner: lm.ActiveLearner,
-                 optimiser, loss_function, settings: Union[dict, PipelineSettings]):
+                 optimiser, loss_function, settings: Union[dict, PipelineSettings]) -> None:
         """
 
         Parameters
@@ -81,17 +80,19 @@ class Pipeline:
         Runs the pipeline. Return a Session object as well as a dict of stats, which contains
         loss history on train & test and accuracy & f1 score history.
 
-        Arguments:
-            `verbose`: int, optional
+        Parameters
+        ----------
+            verbose: int, optional
                 Which information should be displayed
                 during session. (default=0)
-                0 - silent
-                1 - display iteration count
-                2 - display max uncertainties in every iteration
-            `calculate_accuracy`: bool, optional
+                Options:
+                    0 - silent
+                    1 - display iteration count
+                    2 - display max uncertainties in every iteration
+            calculate_accuracy: bool, optional
                 Whether or not to calculate predictions
                 accuracy after every iteration.
-            `calculate_f1_score`: bool, optional
+            calculate_f1_score: bool, optional
                 Whether or not to calculate predictions
                 F1 score after every iteration.
 
@@ -225,7 +226,7 @@ class PipelineSettings:
 
     def __init__(self, n_queries: int, init_epochs: int,
                  epochs_per_query: int, query_batch_size: int = 100,
-                 query_criterion: str = 'entropy'):
+                 query_criterion: str = 'entropy') -> None:
         """
 
         Parameters
@@ -239,8 +240,8 @@ class PipelineSettings:
         query_batch_size: int, optional
             Number of batches asked in every query. (default = 100)
         query_criterion: str, optional
-            criterion: 'entropy' | 'margin' | 'confidence' | 'random'
             Type of criterion used for selecting batches in query. (default = 'entropy')
+            Options: 'entropy' | 'margin' | 'confidence' | 'random'
 
         """
         self.n_queries = n_queries
@@ -299,7 +300,7 @@ class PipelineSettings:
             settings_dict = json.load(file)
         return PipelineSettings.from_dict(settings_dict)
 
-    def to_json(self, path: os.PathLike, filename: str = None):
+    def to_json(self, path: os.PathLike, filename: str = None) -> None:
         """
         Exports settings to a JSON file
         ...
